@@ -1,0 +1,30 @@
+.dashboard-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.dashboard-card h3 {
+  margin: 0 0 8px 0;
+  color: #2f78c4;
+}
+
+.dashboard-card p {
+  margin: 0;
+  color: #555;
+  font-size: 14px;
+}

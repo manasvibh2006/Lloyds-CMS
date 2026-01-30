@@ -1,0 +1,164 @@
+.form-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.form-row label {
+  width: 180px;
+  font-weight: 500;
+  color: #000;          
+}
+
+.form-row select,
+.form-row input {
+  width: 260px;
+  padding: 6px 8px;
+  background-color: #3c3c3c;
+  color: #fff;
+  border: 1px solid #999;
+  border-radius: 4px;
+}
+
+.form-row select:disabled {
+  background-color: #555;
+}
+
+.button-group {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+}
+
+.btn-submit {
+  background-color: green;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-close {
+  background-color:red;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.success-msg {
+  color: green;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.block-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.block-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  background: #7b68ee;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.block-btn.active {
+  background: #0a7d00;
+  font-weight: 600;
+}
+.room-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.room-card {
+  padding: 12px;
+  border: 2px solid #d9534f;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.room-card.selected {
+  background: #2f78c4;
+  color: white;
+  border-color: #2f78c4;
+}
+.bunk-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.bunk-pair {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px;
+  background: #fafafa;
+  text-align: center;
+}
+
+.bed-slot {
+  cursor: pointer;
+  padding: 8px 0;
+  margin: 4px 0;
+  border-radius: 4px;
+  border: 1px solid #aaa;
+  background: #f0f0f0;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.bed-slot:hover {
+  background: #e6f0ff;
+  border-color: #2f78c4;
+}
+
+.bed-slot.selected {
+  background: #2f8f2f;
+  color: white;
+  border-color: #2f8f2f;
+  font-weight: 600;
+}
+
+.bunk-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #555;
+}
+
+.bed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.bed-btn {
+  padding: 10px;
+  border: 1px solid #ccc;
+  background: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.bed-selected {
+  background: #2f78c4;
+  color: white;
+}
+
+.bed-disabled {
+  background: #ddd;
+  cursor: not-allowed;
+  opacity: 0.6;
+}

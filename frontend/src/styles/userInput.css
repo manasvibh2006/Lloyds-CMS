@@ -1,0 +1,27 @@
+/* Container card */
+.user-card {
+  width: 100%;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 0 6px rgba(241, 239, 239, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Blue header */
+.user-card-header {
+  background-color: #2f78c4;
+  color: white;
+  padding: 12px;
+  font-size: 18px;
+}
+
+/* Card body */
+.user-card-body {
+  padding: 20px;
+}
+
+/* Reuse same button styles but keep namespace */
+.user-button-group {
+  margin-top: 20px;
+}
