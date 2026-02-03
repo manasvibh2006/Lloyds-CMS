@@ -1,9 +1,38 @@
 .sidebar {
-  width: 220px;
-  background-color: #1f3b57;
+  background: linear-gradient(180deg, #2C3E50 0%, #1A2332 100%);
   color: white;
   height: 100vh;
   padding: 16px;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+  flex-shrink: 0;
+  overflow-y: auto;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.sidebar.closed {
+  width: 80px;
+}
+
+.sidebar.open {
+  width: 250px;
+}
+
+.sidebar-toggle {
+  width: 100%;
+  background: rgba(196, 28, 59, 0.2);
+  border: 1px solid #C41C3B;
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-bottom: 16px;
+  transition: background 0.2s;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(196, 28, 59, 0.4);
 }
 
 .sidebar-title {
@@ -11,6 +40,7 @@
   font-weight: 600;
   margin-bottom: 20px;
   text-align: center;
+  color: #FFFFFF;
 }
 
 .sidebar-list {
@@ -27,16 +57,25 @@
   border-radius: 4px;
   cursor: pointer;
   margin-bottom: 6px;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
+  border-left: 3px solid transparent;
+  justify-content: center;
+}
+
+.sidebar.open .sidebar-item {
+  justify-content: flex-start;
 }
 
 .sidebar-item:hover {
-  background-color: #2f78c4;
+  background-color: rgba(196, 28, 59, 0.2);
+  border-left-color: #C41C3B;
 }
 
 .sidebar-item.active {
-  background-color: #2f78c4;
+  background-color: #C41C3B;
+  border-left-color: #FFFFFF;
   font-weight: 600;
+  box-shadow: 0 2px 4px rgba(196, 28, 59, 0.3);
 }
 
 .sidebar-icon {

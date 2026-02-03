@@ -1,0 +1,506 @@
+.report-container {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+  font-family: Arial, sans-serif;
+}
+
+/* Filter Section */
+.report-filters {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  background: white;
+  padding: 15px 20px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #333;
+  min-width: 80px;
+  font-size: 13px;
+}
+
+.filter-group select {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+  background-color: white;
+  cursor: pointer;
+  min-width: 150px;
+  color: #333;
+}
+
+.filter-group select:focus {
+  outline: none;
+  border-color: #666;
+}
+
+.filter-group select:disabled {
+  background-color: #f0f0f0;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* User Search Component */
+.user-filter-group {
+  position: relative;
+}
+
+.user-search-container {
+  position: relative;
+  min-width: 180px;
+}
+
+.user-search-input {
+  width: 100%;
+  padding: 8px 30px 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+  background-color: white;
+  color: #333;
+}
+
+.user-search-input:focus {
+  outline: none;
+  border-color: #666;
+}
+
+.user-search-input::placeholder {
+  color: #999;
+}
+
+.user-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.user-clear-btn:hover {
+  color: #333;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #666;
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-dropdown-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.user-dropdown-item:hover {
+  background-color: #f5f5f5;
+}
+
+.user-dropdown-item strong {
+  color: #333;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.user-dropdown-item span {
+  color: #666;
+  font-size: 12px;
+}
+
+.user-dropdown-item.no-results {
+  text-align: center;
+  color: #999;
+  cursor: not-allowed;
+  padding: 15px 12px;
+}
+
+.user-dropdown-item.no-results:hover {
+  background-color: transparent;
+}
+
+.btn-reset {
+  padding: 8px 16px;
+  background-color: #666;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.btn-reset:hover {
+  background-color: #555;
+}
+
+.report-controls {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.btn-download {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-download.excel {
+  background: #217346;
+}
+
+.btn-download.excel:hover {
+  background: #1a5c37;
+}
+
+.btn-download.pdf {
+  background: #d32f2f;
+}
+
+.btn-download.pdf:hover {
+  background: #b71c1c;
+}
+
+.report-content {
+  background: white;
+  padding: 30px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 20px;
+  gap: 20px;
+}
+
+.report-header-left {
+  flex: 1;
+  text-align: center;
+}
+
+.report-header-right {
+  text-align: right;
+  padding-top: 15px;
+}
+
+.report-logo {
+  max-width: 100px;
+  height: auto;
+  margin-bottom: 15px;
+}
+
+.report-header h1 {
+  font-size: 24px;
+  color: #333;
+  margin: 10px 0 5px;
+  font-weight: 700;
+}
+
+.report-header p {
+  color: #666;
+  margin: 5px 0;
+  font-size: 13px;
+}
+
+.filter-info {
+  background: #f9f9f9;
+  border-left: 3px solid #333;
+  padding: 12px 15px;
+  margin-top: 15px;
+  border-radius: 3px;
+}
+
+.filter-info strong {
+  display: block;
+  color: #333;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.filter-info p {
+  color: #666;
+  margin: 4px 0;
+  padding-left: 8px;
+  font-size: 12px;
+}
+
+.report-body {
+  margin-top: 30px;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-size: 14px;
+  background: #f9f9f9;
+  border-radius: 3px;
+}
+
+.building-section {
+  margin-bottom: 35px;
+  page-break-inside: avoid;
+}
+
+.building-section > h2 {
+  color: #333;
+  padding: 10px 0;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 700;
+  border-bottom: 2px solid #333;
+}
+
+.floor-section {
+  margin-left: 0;
+  margin-bottom: 25px;
+  padding-left: 15px;
+}
+
+.floor-section > h3 {
+  color: #444;
+  padding: 8px 0;
+  margin-bottom: 15px;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+}
+
+.room-section {
+  margin-left: 0;
+  margin-bottom: 20px;
+  background: #fafafa;
+  padding: 15px 20px;
+  border-radius: 3px;
+  border-left: 3px solid #333;
+}
+
+.room-section > h4 {
+  color: #333;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.room-info {
+  color: #666;
+  margin-bottom: 12px;
+  font-size: 13px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 3px;
+  border-left: 2px solid #666;
+}
+
+.room-info strong {
+  color: #333;
+  font-weight: 600;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 12px;
+  background: white;
+  border: 1px solid #ddd;
+}
+
+.report-table thead {
+  background: #333;
+  color: white;
+}
+
+.report-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  border: 1px solid #555;
+  font-size: 12px;
+}
+
+.report-table th:first-child {
+  background: #C41C3B;
+  color: white;
+  font-weight: 700;
+}
+
+.allocation-code {
+  font-family: 'Courier New', monospace;
+  color: #C41C3B;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.report-table td {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  color: #333;
+}
+
+.report-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.report-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.status-booked {
+  color: #2e7d32;
+  font-weight: 600;
+  background: #e8f5e9;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  font-size: 11px;
+}
+
+.status-pending {
+  color: #f57c00;
+  font-weight: 600;
+  background: #fff3e0;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  font-size: 11px;
+}
+
+.status-released {
+  color: #c62828;
+  font-weight: 600;
+  background: #ffebee;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: inline-block;
+  font-size: 11px;
+}
+
+.report-footer {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #ddd;
+  color: #999;
+  font-size: 11px;
+}
+
+.report-footer p {
+  margin: 3px 0;
+}
+
+.error-message {
+  background: #ffebee;
+  color: #c62828;
+  padding: 15px 20px;
+  border-radius: 3px;
+  border-left: 3px solid #c62828;
+  font-weight: 600;
+}
+
+@media print {
+  .report-filters,
+  .report-controls {
+    display: none !important;
+  }
+  
+  .report-container {
+    background: white;
+    padding: 0;
+  }
+  
+  .report-content {
+    border: none;
+    padding: 20px;
+  }
+  
+  .building-section {
+    page-break-inside: avoid;
+  }
+  
+  .room-section {
+    page-break-inside: avoid;
+  }
+  
+  .report-table {
+    page-break-inside: auto;
+  }
+  
+  .report-table tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  .report-table thead {
+    display: table-header-group;
+  }
+  
+  .report-table tfoot {
+    display: table-footer-group;
+  }
+  
+  /* Ensure table borders print correctly */
+  .report-table th,
+  .report-table td {
+    border: 1px solid #333 !important;
+  }
+}
+
+/* Hide building, floor, room sections - show only flat table */
+.building-section {
+  display: none;
+}
+
+.floor-section {
+  display: none;
+}
+
+.room-section {
+  display: none;
+}

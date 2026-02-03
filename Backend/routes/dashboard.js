@@ -1,0 +1,110 @@
+const express = require("express");
+const db = require("../db");
+const router = express.Router();
+
+// Get bed vacancies by building
+router.get("/vacancies", (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        b.name as building_name,
+        COUNT(DISTINCT bed.id) as total_beds,
+        COUNT(DISTINCT CASE WHEN bed.status = 'AVAILABLE' AND bed.id NOT IN (
+          SELECT DISTINCT bed_id FROM bookings WHERE status IN ('PENDING', 'ACTIVE')
+        ) THEN bed.id END) as vacant_beds
+      FROM buildings b
+      LEFT JOIN floors f ON b.id = f.building_id
+      LEFT JOIN rooms r ON f.id = r.floor_id
+      LEFT JOIN beds bed ON r.id = bed.room_id
+      GROUP BY b.id, b.name
+      ORDER BY b.name
+    `;
+
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error("Error fetching vacancies:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      const vacancyData = results || [];
+      res.json(vacancyData);
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/all-contractors", (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        contractor_name, 
+        company, 
+        COUNT(*) as employeeCount
+      FROM allocations 
+      WHERE contractor_name IS NOT NULL AND contractor_name != ''
+      GROUP BY contractor_name, company
+      ORDER BY contractor_name
+    `;
+    
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error("Error fetching contractors:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      res.json(results || []);
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get dashboard summary data by vendor/contractor
+router.get("/summary", (req, res) => {
+  try {
+    // Get first contractor with company and count of allocations
+    const query = `
+      SELECT 
+        contractor_name, 
+        company, 
+        COUNT(*) as activeEmployees
+      FROM allocations 
+      WHERE contractor_name IS NOT NULL AND contractor_name != ''
+      GROUP BY contractor_name, company
+      LIMIT 1
+    `;
+    
+    db.query(query, (err, results) => {
+      if (err) {
+        console.error("Error fetching dashboard data:", err);
+        return res.status(500).json({ error: "Database error", details: err.message });
+      }
+
+      if (!results || results.length === 0) {
+        return res.json({
+          vendorName: "N/A",
+          companyName: "N/A",
+          activeEmployees: 0,
+          inactiveEmployees: 0
+        });
+      }
+
+      const data = results[0];
+      
+      res.json({
+        vendorName: data.contractor_name || "N/A",
+        companyName: data.company || "N/A",
+        activeEmployees: data.activeEmployees || 0,
+        inactiveEmployees: 0
+      });
+    });
+  } catch (error) {
+    console.error("Error in dashboard summary:", error);
+    res.status(500).json({ error: "Server error", details: error.message });
+  }
+});
+
+module.exports = router;

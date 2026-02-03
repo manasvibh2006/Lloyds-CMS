@@ -8,6 +8,8 @@ function UserInputPage({ bookingData, onSuccess }) {
   const [userName, setUserName] = useState("");
   const [company, setCompany] = useState("");
   const [contractorName, setContractorName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,9 +19,14 @@ function UserInputPage({ bookingData, onSuccess }) {
       return;
     }
 
-    if (!userId || !userName || !company) {
+    if (!userId || !userName || !company || !startDate || !endDate) {
       alert("Please fill all required fields");
       return;
+    }
+
+    if (new Date(startDate) >= new Date(endDate)) {
+  alert("End date must be after start date");
+  return;
     }
 
     setLoading(true);
@@ -36,6 +43,8 @@ function UserInputPage({ bookingData, onSuccess }) {
           company,
           contractorName,
           bedId: bookingData.bedId, // 🔥 CRITICAL
+          startDate,
+          endDate,
           remarks
         })
       });
@@ -97,6 +106,23 @@ function UserInputPage({ bookingData, onSuccess }) {
             onChange={(e) => setContractorName(e.target.value)}
           />
         </FormRow>
+
+        <FormRow label="start date" required>
+          <input
+           type="date"
+           value={startDate}
+           onChange={(e) =>setStartDate(e.target.value)}
+          />
+          </FormRow>
+
+          <FormRow label="End date" required>
+            <input
+            type="date"
+            value={endDate}
+            onChange={(e) =>setEndDate(e.target.value)}
+          />
+          </FormRow>
+
 
         <FormRow label="Remarks">
           <textarea

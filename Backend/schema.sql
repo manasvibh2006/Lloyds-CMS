@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS rooms (
 CREATE TABLE IF NOT EXISTS beds (
   id INT PRIMARY KEY AUTO_INCREMENT,
   room_id INT NOT NULL,
-  bed_number INT NOT NULL,
+  bunk_number INT NOT NULL,
+  position VARCHAR(1) NOT NULL, -- 'L' for Lower, 'U' for Upper  
   status VARCHAR(50) DEFAULT 'AVAILABLE',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (room_id) REFERENCES rooms(id)
@@ -53,8 +54,30 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert sample buildings
-INSERT IGNORE INTO buildings (id, name, address) VALUES 
-(1, 'Building A', '123 Main Street'),
-(2, 'Building B', '456 Oak Avenue'),
-(3, 'Building C', '789 Pine Road');
+-- Create proper users table
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  company VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'CONTRACTOR',
+  password_hash VARCHAR(255) DEFAULT 'N/A',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create allocations table
+CREATE TABLE IF NOT EXISTS allocations (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id VARCHAR(255) NOT NULL,
+  user_name VARCHAR(255) NOT NULL,
+  company VARCHAR(255) NOT NULL,
+  bed_id INT NOT NULL,
+  contractor_name VARCHAR(255),
+  start_date DATE,
+  end_date DATE,
+  remarks TEXT,
+  allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  released_at TIMESTAMP NULL,
+  status VARCHAR(50) DEFAULT 'BOOKED',
+  FOREIGN KEY (bed_id) REFERENCES beds(id)
+);

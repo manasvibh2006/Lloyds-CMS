@@ -1,30 +1,321 @@
 .dashboard-container {
+  padding: 32px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+}
+
+/* Dashboard Summary Section */
+.dashboard-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+  padding: 14px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(35, 55, 80, 0.08);
+  text-align: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e3e9f2;
+  position: relative;
+  overflow: hidden;
+}
+
+.summary-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(35, 55, 80, 0.14);
+}
+
+.summary-card h3 {
+  margin: 0 0 6px 0;
+  color: #2f3c4d;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.summary-card p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 18px;
+  color: #1f2a37;
+}
+
+.summary-card .count {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f9d58;
+}
+
+.company-card {
+  border-top: 4px solid #2E86AB;
+}
+
+.company-card h3 {
+  color: #2E86AB;
+}
+
+.vendor-card {
+  border-top: 4px solid #A23B72;
+}
+
+.vendor-card h3 {
+  color: #A23B72;
+}
+
+.active-card {
+  border-top: 4px solid #06A77D;
+}
+
+.active-card h3 {
+  color: #06A77D;
+}
+
+.active-card .count {
+  background: linear-gradient(135deg, #06A77D 0%, #059669 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.inactive-card {
+  border-top: 4px solid #D62839;
+}
+
+.inactive-card h3 {
+  color: #D62839;
+}
+
+.vacancy-card {
+  border-top: 4px solid #F57C00;
+}
+
+.vacancy-card h3 {
+  color: #F57C00;
+}
+
+.vacancy-content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.building-vacancy {
+  background: #fff7ed;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #ffe0c2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 6px 14px rgba(245, 124, 0, 0.08);
+}
+
+.building-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: #d35400;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.vacancy-stats {
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: #5b5b5b;
+}
+
+.total-beds,
+.vacant-beds {
+  font-weight: 700;
+  background: #ffffff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #f2f2f2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.total-beds::before {
+  content: 'Total';
+  display: block;
+  font-size: 10px;
+  color: #9ca3af;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.vacant-beds::before {
+  content: 'Vacant';
+  display: block;
+  font-size: 10px;
+  color: #f57c00;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.vacant-beds {
+  color: #f57c00;
+  border-color: #ffd7a0;
+}
+
+@media (min-width: 1024px) {
+  /* Give more width to vacancies while tightening company/allocations */
+  .dashboard-summary {
+    grid-template-columns: 0.9fr 0.9fr 1.4fr;
+    align-items: stretch;
+  }
+
+  .vacancy-content {
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  }
+
+  .building-vacancy {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .vacancy-stats {
+    justify-content: space-between;
+  }
+}
+
+.error-message {
+  background: linear-gradient(135deg, #FFE5E5 0%, #FFCCCC 100%);
+  color: #C41C3B;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border-left: 4px solid #C41C3B;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(196, 28, 59, 0.15);
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dashboard Cards Grid */
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
 }
 
 .dashboard-card {
-  background-color: white;
-  padding: 20px;
-  border-radius: 6px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ef;
+  box-shadow: 0 8px 20px rgba(196, 28, 59, 0.12);
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 110px;
 }
 
 .dashboard-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+  box-shadow: 0 12px 26px rgba(196, 28, 59, 0.18);
+  border-color: #f2c6d0;
 }
 
 .dashboard-card h3 {
-  margin: 0 0 8px 0;
-  color: #2f78c4;
+  margin: 0 0 4px 0;
+  color: #c41c3b;
+  font-size: 15px;
+  font-weight: 800;
 }
 
 .dashboard-card p {
   margin: 0;
-  color: #555;
+  color: #4a5568;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.25;
+}
+.contractors-section {
+  margin-top: 40px;
+}
+
+.contractors-section h2 {
+  color: #2d3748;
+  margin-bottom: 24px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.contractors-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.contractors-table thead {
+  background: linear-gradient(135deg, #C41C3B 0%, #A01628 100%);
+  color: white;
+}
+
+.contractors-table th {
+  padding: 16px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.contractors-table td {
+  padding: 16px;
+  border-bottom: 1px solid #E2E8F0;
+  color: #4a5568;
   font-size: 14px;
+  font-weight: 500;
+}
+
+.contractors-table tbody tr {
+  transition: all 0.2s ease;
+}
+
+.contractors-table tbody tr:hover {
+  background-color: #F7FAFC;
+  box-shadow: inset 0 0 8px rgba(196, 28, 59, 0.05);
+}
+
+.contractors-table tbody tr:last-child td {
+  border-bottom: none;
 }

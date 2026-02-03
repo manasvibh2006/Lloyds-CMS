@@ -1,23 +1,28 @@
-import { SIDEBAR_ITEMS } from "../configs/sideConfig";
+import sidebarConfig from "../configs/sideconfig";
 import "../styles/sidebar.css";
 
-function Sidebar({ active, onChange }) {
+function Sidebar({ active, onChange, isOpen, onToggle }) {
   return (
-    <div className="sidebar">
-      <div className="sidebar-title">CAMPUS</div>
+    <div className={`sidebar ${isOpen ? "open" : "closed"}`}>
+      <button className="sidebar-toggle" onClick={onToggle} title="Toggle Sidebar">
+        {isOpen ? "◀" : "▶"}
+      </button>
+
+      {isOpen && <div className="sidebar-title">CAMPUS</div>}
 
       <ul className="sidebar-list">
-        {SIDEBAR_ITEMS.map((item) => {
-          const Icon = item.Icon;
+        {sidebarConfig.map((item) => {
+          const Icon = item.icon;
 
           return (
             <li
-              key={item.key}
-              className={`sidebar-item ${active === item.key ? "active" : ""}`}
-              onClick={() => onChange(item.key)}
+              key={item.path}
+              className={`sidebar-item ${active === item.path ? "active" : ""}`}
+              onClick={() => onChange(item.path)}
+              title={!isOpen ? item.label : ""}
             >
               <Icon className="sidebar-icon" />
-              <span className="sidebar-label">{item.label}</span>
+              {isOpen && <span className="sidebar-label">{item.label}</span>}
             </li>
           );
         })}

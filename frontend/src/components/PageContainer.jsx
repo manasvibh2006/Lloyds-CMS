@@ -3,7 +3,7 @@ function PageContainer({ title, children }) {
     <div style={{ padding: "20px" }}>
       <div
         style={{
-          background: "#2f78c4",
+          background: "#2C3E50",
           color: "white",
           padding: "10px",
           fontSize: "18px",

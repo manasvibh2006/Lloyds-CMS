@@ -1,57 +1,114 @@
 import { useState } from "react";
+import axios from "axios";
 import "../styles/login.css";
 
 function LoginPage({ onLogin }) {
-  const [userId, setUserId] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // TEMP USERS (frontend demo only)
-  const USERS = [
-    { id: "a", password: "1", role: "admin" }
-  ];
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
-    if (!userId || !password) {
-      setError("Please enter User ID and Password");
+    if (!username || !password || !role) {
+      setError("Please fill in all fields");
       return;
     }
 
-    const user = USERS.find(
-      (u) => u.id === userId && u.password === password
-    );
+    setLoading(true);
 
-    if (!user) {
-      setError("Invalid credentials");
-      return;
+    try {
+      const response = await axios.post("http://localhost:5000/api/auth/login", {
+        username,
+        password,
+        role
+      });
+
+      if (response.data.success) {
+        onLogin(response.data.user);
+      }
+    } catch (err) {
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Login failed. Please try again.");
+      }
+      console.error("Login error:", err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    onLogin(user);
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleLogin();
+    }
   };
 
   return (
-    <div className="login-container">
+    <div className="login-wrapper">
       <div className="login-card">
-        <h2>Camp Management System</h2>
+        {/* Title */}
+        <div className="login-header">
+          <h1 className="login-title">Lloyds CMS</h1>
+          <p className="login-subtitle">Camp Management System</p>
+        </div>
 
-        <input
-          placeholder="User ID"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-        />
+        {/* Form Fields */}
+        <div className="login-form-group">
+          <label className="login-label">Username</label>
+          <input
+            type="text"
+            className="login-input"
+            placeholder="Enter your username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+        </div>
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="login-form-group">
+          <label className="login-label">Password</label>
+          <input
+            type="password"
+            className="login-input"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+        </div>
 
+        <div className="login-form-group">
+          <label className="login-label">Role</label>
+          <input
+            type="text"
+            className="login-input"
+            placeholder="Enter your role (e.g., admin, manager, staff)"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            onKeyPress={handleKeyPress}
+          />
+        </div>
+
+        {/* Error Message */}
         {error && <div className="login-error">{error}</div>}
 
-        <button onClick={handleLogin}>Login</button>
+        {/* Login Button */}
+        <button
+          className="login-button"
+          onClick={handleLogin}
+          disabled={loading}
+        >
+          {loading ? "Logging in..." : "Login"}
+        </button>
+
+        {/* Footer Text */}
+        <p className="login-footer">
+          Please contact your administrator if you need access
+        </p>
       </div>
     </div>
   );

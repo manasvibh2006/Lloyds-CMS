@@ -2,7 +2,16 @@ import { useState } from "react";
 import FormRow from "./FormRow";
 import "../styles/form.css";
 
-function BookingForm({ onProceed, buildings, floors, rooms, beds, onBuildingChange, onFloorChange, onRoomChange }) {
+function BookingForm({ 
+  onProceed, 
+  buildings = [], 
+  floors = [], 
+  rooms = [], 
+  beds = [], 
+  onBuildingChange, 
+  onFloorChange, 
+  onRoomChange 
+}) {
   const [building, setBuilding] = useState("");
   const [floor, setFloor] = useState("");
   const [room, setRoom] = useState("");
@@ -14,85 +23,113 @@ function BookingForm({ onProceed, buildings, floors, rooms, beds, onBuildingChan
       return;
     }
 
+    // Get building and floor names for display
+    const buildingName = buildings.find(b => b.id == building)?.name || building;
+    const floorName = floors.find(f => f.id == floor)?.name || floor;
+    const roomNumber = rooms.find(r => r.id == room)?.room_number || room;
+
     onProceed({
-      building,
-      floor,
-      room,
-      bedId: selectedBed.id
+      building: buildingName,
+      buildingId: building,
+      floor: floorName, 
+      floorId: floor,
+      room: roomNumber,
+      roomId: room,
+      bedId: selectedBed.id,
+      bedNumber: selectedBed.bunk_number,
+      bedPosition: selectedBed.position,
+      fullLocation: `${buildingName} - ${floorName} - Room ${roomNumber} - Bunk ${selectedBed.bunk_number}${selectedBed.position}`
     });
   };
 
   return (
     <>
-      {/* BUILDING */}
+      {/* BUILDING GRID */}
       <FormRow label="Building" required>
-        <select
-          value={building}
-          onChange={(e) => {
-            setBuilding(e.target.value);
-            setFloor("");
-            setRoom("");
-            setSelectedBed(null);
-            onBuildingChange(e.target.value);
-          }}
-        >
-          <option value="">-- Select --</option>
-          {buildings.map(b => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-            </option>
-          ))}
-        </select>
+        <div className="selection-grid">
+          {buildings.length === 0 ? (
+            <p style={{color: '#666', textAlign: 'center', padding: '20px'}}>No buildings available</p>
+          ) : (
+            buildings.map(b => (
+              <button
+                key={b.id}
+                type="button"
+                className={`selection-card ${building === b.id ? "card-selected" : ""}`}
+                onClick={() => {
+                  setBuilding(b.id);
+                  setFloor("");
+                  setRoom("");
+                  setSelectedBed(null);
+                  onBuildingChange(b.id);
+                }}
+              >
+                {b.name}
+              </button>
+            ))
+          )}
+        </div>
       </FormRow>
 
-      {/* FLOOR */}
+      {/* FLOOR GRID */}
       <FormRow label="Floor" required>
-        <select
-          value={floor}
-          disabled={!building}
-          onChange={(e) => {
-            setFloor(e.target.value);
-            setRoom("");
-            setSelectedBed(null);
-            onFloorChange(e.target.value);
-          }}
-        >
-          <option value="">-- Select --</option>
-          {floors.map(f => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
+        <div className="selection-grid">
+          {!building ? (
+            <p style={{color: '#999', textAlign: 'center', padding: '20px', fontStyle: 'italic'}}>Select a building first</p>
+          ) : floors.length === 0 ? (
+            <p style={{color: '#666', textAlign: 'center', padding: '20px'}}>No floors available</p>
+          ) : (
+            floors.map(f => (
+              <button
+                key={f.id}
+                type="button"
+                className={`selection-card ${floor === f.id ? "card-selected" : ""}`}
+                onClick={() => {
+                  setFloor(f.id);
+                  setRoom("");
+                  setSelectedBed(null);
+                  onFloorChange(f.id);
+                }}
+              >
+                {f.name}
+              </button>
+            ))
+          )}
+        </div>
       </FormRow>
 
-      {/* ROOM */}
+      {/* ROOM GRID */}
       <FormRow label="Room" required>
-        <select
-          value={room}
-          disabled={!floor}
-          onChange={(e) => {
-            setRoom(e.target.value);
-            setSelectedBed(null);
-            onRoomChange(e.target.value);
-          }}
-        >
-          <option value="">-- Select --</option>
-          {rooms.map(r => (
-            <option key={r.id} value={r.id}>
-              {r.room_number}
-            </option>
-          ))}
-        </select>
+        <div className="selection-grid">
+          {!floor ? (
+            <p style={{color: '#999', textAlign: 'center', padding: '20px', fontStyle: 'italic'}}>Select a floor first</p>
+          ) : rooms.length === 0 ? (
+            <p style={{color: '#666', textAlign: 'center', padding: '20px'}}>No rooms available</p>
+          ) : (
+            rooms.map(r => (
+              <button
+                key={r.id}
+                type="button"
+                className={`selection-card ${room === r.id ? "card-selected" : ""}`}
+                onClick={() => {
+                  setRoom(r.id);
+                  setSelectedBed(null);
+                  onRoomChange(r.id);
+                }}
+              >
+                Room {r.room_number}
+              </button>
+            ))
+          )}
+        </div>
       </FormRow>
 
       {/* BED GRID */}
       <FormRow label="Bed" required>
         <div className="bed-grid">
           {beds.length === 0 && room ? (
-            <p style={{color: '#666'}}>No beds available in this room</p>
+            <p style={{color: '#666', textAlign: 'center', padding: '20px'}}>No beds available in this room</p>
           ) : beds.length === 0 ? (
-            <p style={{color: '#666'}}>Please select a room first</p>
+            <p style={{color: '#999', textAlign: 'center', padding: '20px', fontStyle: 'italic'}}>Please select a room first</p>
           ) : (
             beds.map((bed) => (
               <button
@@ -104,8 +141,10 @@ function BookingForm({ onProceed, buildings, floors, rooms, beds, onBuildingChan
                 `}
                 disabled={bed.status !== 'AVAILABLE'}
                 onClick={() => setSelectedBed(bed)}
+                title={`Bunk ${bed.bunk_number} ${bed.position === "L" ? "Lower" : "Upper"} - ${bed.status}`}
               >
-                🛏 Bunk {bed.bunk_number} {bed.position === "L" ? "Lower" : "Upper"}
+                🛏️ #{bed.bunk_number}{bed.position}
+                {bed.status === 'BOOKED' && <span className="status-badge">Booked</span>}
               </button>
             ))
           )}

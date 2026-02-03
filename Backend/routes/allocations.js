@@ -2,8 +2,64 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db"); 
 
+// GET all allocations
+router.get("/", (req, res) => {
+  console.log("📡 Fetching allocations...");
+  
+  // First check if allocations table exists and has data
+  db.query("SELECT COUNT(*) as count FROM allocations", (err, countResult) => {
+    if (err) {
+      console.error("❌ Error checking allocations table:", err.message);
+      // Table might not exist, return empty array
+      return res.json([]);
+    }
+    
+    const count = countResult[0].count;
+    console.log(`📊 Total allocations in DB: ${count}`);
+    
+    if (count === 0) {
+      console.log("⚠️ No allocations found, returning empty array");
+      return res.json([]);
+    }
+    
+    // Fetch with joins - simplified query
+    db.query(`
+      SELECT 
+        a.id,
+        a.user_id as userId,
+        a.user_name as userName,
+        a.company,
+        a.contractor_name as contractorName,
+        a.remarks,
+        a.status,
+        a.allocated_at as created_at,
+        a.start_date,
+        a.end_date,
+        b.bunk_number,
+        b.position,
+        r.room_number,
+        f.id as floorId,
+        bld.name as buildingName
+      FROM allocations a
+      JOIN beds b ON a.bed_id = b.id
+      JOIN rooms r ON b.room_id = r.id
+      JOIN floors f ON r.floor_id = f.id
+      JOIN buildings bld ON f.building_id = bld.id
+      ORDER BY a.allocated_at DESC
+    `, (err, results) => {
+      if (err) {
+        console.error("❌ Allocations fetch error:", err.message);
+        console.error("Full error:", err);
+        return res.status(500).json({ error: err.message });
+      }
+      console.log(`✅ Found ${results.length} allocations`);
+      res.json(results);
+    });
+  });
+});
+
 // CREATE ALLOCATION
-router.post("/", async (req, res) => {
+router.post("/", (req, res) => {
   console.log("🔥 ALLOCATION API HIT 🔥");
   console.log("REQ BODY:", req.body);
 
@@ -13,6 +69,8 @@ router.post("/", async (req, res) => {
     company,
     contractorName,
     bedId,
+    startDate,
+    endDate,
     remarks
   } = req.body;
 
@@ -20,65 +78,59 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  const conn = await db.getConnection();
+  // Check bed availability and insert in one go
+  db.query(
+    `INSERT INTO allocations
+     (user_id, user_name, company, bed_id, contractor_name, remarks, start_date, end_date, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'BOOKED')`,
+    [userId, userName, company, bedId, contractorName || 'N/A', remarks || null, startDate || null, endDate || null],
+    (err, result) => {
+      if (err) {
+        console.error("❌ Allocation error:", err);
+        return res.status(500).json({ error: err.message });
+      }
 
-  try {
-    await conn.beginTransaction();
-
-    // 1️⃣ Create user if not exists
-    const [existingUser] = await conn.query(
-      "SELECT id FROM users WHERE user_id = ?",
-      [userId]
-    );
-
-    let userDbId;
-
-    if (existingUser.length === 0) {
-      const [userResult] = await conn.query(
-        `INSERT INTO users 
-         (user_id, name, company, role, password_hash)
-         VALUES (?, ?, ?, 'CONTRACTOR', 'N/A')`,
-        [userId, userName, company]
+      // Update bed status
+      db.query(
+        "UPDATE beds SET status = 'BOOKED' WHERE id = ?",
+        [bedId],
+        (updateErr) => {
+          if (updateErr) {
+            console.error("Error updating bed:", updateErr);
+            return res.status(500).json({ error: updateErr.message });
+          }
+          res.json({ message: "Allocation successful" });
+        }
       );
-      userDbId = userResult.insertId;
-    } else {
-      userDbId = existingUser[0].id;
+    }
+  );
+});
+
+// DELETE - Unbook allocation and release bed
+router.delete("/:id", (req, res) => {
+  const { id } = req.params;
+  const { bedId } = req.query;
+
+  // Update bed status to AVAILABLE
+  db.query("UPDATE beds SET status = 'AVAILABLE' WHERE id = ?", [bedId], (err) => {
+    if (err) {
+      console.error("Error updating bed:", err);
+      return res.status(500).json({ error: err.message });
     }
 
-    // 2️⃣ Check bed availability
-    const [bedRows] = await conn.query(
-      "SELECT is_available FROM beds WHERE id = ? FOR UPDATE",
-      [bedId]
+    // Delete or mark allocation as released
+    db.query(
+      "UPDATE allocations SET status = 'RELEASED', released_at = NOW() WHERE id = ?",
+      [id],
+      (updateErr) => {
+        if (updateErr) {
+          console.error("Error unbooking allocation:", updateErr);
+          return res.status(500).json({ error: updateErr.message });
+        }
+        res.json({ success: true, message: "Bed unbooked successfully" });
+      }
     );
-
-    if (bedRows.length === 0 || bedRows[0].is_available === 0) {
-      throw new Error("Bed is already booked");
-    }
-
-    // 3️⃣ Insert allocation
-    await conn.query(
-      `INSERT INTO allocations
-       (user_id, bed_id, contractor_name, remarks, status)
-       VALUES (?, ?, ?, ?, 'BOOKED')`,
-      [userDbId, bedId, contractorName || null, remarks || null]
-    );
-
-    // 4️⃣ Mark bed unavailable
-    await conn.query(
-      "UPDATE beds SET is_available = 0, status = 'BOOKED' WHERE id = ?",
-      [bedId]
-    );
-
-    await conn.commit();
-
-    res.json({ message: "Allocation successful" });
-  } catch (err) {
-    await conn.rollback();
-    console.error("❌ Allocation error:", err);
-    res.status(500).json({ error: err.message });
-  } finally {
-    conn.release();
-  }
+  });
 });
 
 module.exports = router;

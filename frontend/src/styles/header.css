@@ -1,0 +1,105 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* solid gradient header (no background image) */
+  background: linear-gradient(90deg, #2C3E50 0%, #1A2332 100%);
+  padding: 12px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  border-bottom: 3px solid #C41C3B;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.hamburger-btn:hover {
+  background-color: rgba(196, 28, 59, 0.3);
+}
+
+@media (max-width: 768px) {
+  .hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.logo-full {
+  height: 45px;
+  object-fit: contain;
+  margin-left: 8px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.4));
+}
+
+.header-right-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* body area below header which should show the background image */
+.app-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  background-color: #F8F9FA;
+  background-image: url("../assets/image.png");
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+}
+
+.header-cms {
+  color: #FFFFFF;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  align-items: center;
+}
+
+.header-title {
+  margin: 0;
+  color: #FFFFFF;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.logout-btn {
+  background-color: #C41C3B;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background-color: #A01629;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(196, 28, 59, 0.3);
+}
+
+.logout-btn:active {
+  transform: translateY(0);
+}
