@@ -36,9 +36,8 @@ function BookingForm({
       room: roomNumber,
       roomId: room,
       bedId: selectedBed.id,
-      bedNumber: selectedBed.bunk_number,
-      bedPosition: selectedBed.position,
-      fullLocation: `${buildingName} - ${floorName} - Room ${roomNumber} - Bunk ${selectedBed.bunk_number}${selectedBed.position}`
+      bedNumber: selectedBed.bed_number,
+      fullLocation: `${buildingName} - ${floorName} - Room ${roomNumber} - Bed ${selectedBed.bed_number}`
     });
   };
 
@@ -141,9 +140,9 @@ function BookingForm({
                 `}
                 disabled={bed.status !== 'AVAILABLE'}
                 onClick={() => setSelectedBed(bed)}
-                title={`Bunk ${bed.bunk_number} ${bed.position === "L" ? "Lower" : "Upper"} - ${bed.status}`}
+                title={`Bed ${bed.bed_number} - ${bed.status}`}
               >
-                🛏️ #{bed.bunk_number}{bed.position}
+                Bed {bed.bed_number}
                 {bed.status === 'BOOKED' && <span className="status-badge">Booked</span>}
               </button>
             ))

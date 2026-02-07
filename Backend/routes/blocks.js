@@ -5,7 +5,16 @@ const router = express.Router();
 // Get all buildings
 router.get("/buildings", async (req, res) => {
   try {
-    const [results] = await db.query("SELECT * FROM buildings");
+    const [results] = await db.query(`
+      SELECT 
+        b.id, 
+        b.name as buildingName, 
+        b.address as buildingCode,
+        COUNT(DISTINCT f.id) as floors
+      FROM buildings b
+      LEFT JOIN floors f ON b.id = f.building_id
+      GROUP BY b.id, b.name, b.address
+    `);
     res.json(results);
   } catch (err) {
     console.error("Buildings error:", err);
@@ -13,15 +22,47 @@ router.get("/buildings", async (req, res) => {
   }
 });
 
+// Get floors for a specific building
+router.get("/floors/:buildingName", async (req, res) => {
+  try {
+    const { buildingName } = req.params;
+    const [floors] = await db.query(`
+      SELECT DISTINCT f.floor_number 
+      FROM floors f
+      JOIN buildings b ON f.building_id = b.id
+      WHERE b.name = ?
+      ORDER BY f.floor_number
+    `, [buildingName]);
+    res.json(floors.map(f => f.floor_number));
+  } catch (err) {
+    console.error("Floors error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Add building
 router.post("/buildings", async (req, res) => {
   try {
-    const { buildingName, buildingCode } = req.body;
-    const result = await db.query(
-      "INSERT INTO buildings (buildingName, buildingCode) VALUES (?, ?)",
-      [buildingName, buildingCode]
+    const { buildingName, buildingCode, floors } = req.body;
+    
+    // Insert the building with custom name
+    const [result] = await db.query(
+      "INSERT INTO buildings (name, address, floors) VALUES (?, ?, ?)",
+      [buildingName, buildingCode || null, floors || 1]
     );
-    res.json({ id: result[0].insertId, buildingName, buildingCode });
+    
+    const buildingId = result.insertId;
+    
+    // Create floor entries for this building
+    const numFloors = parseInt(floors) || 1;
+    for (let i = 1; i <= numFloors; i++) {
+      await db.query(
+        "INSERT INTO floors (building_id, floor_number, name) VALUES (?, ?, ?)",
+        [buildingId, i, `Floor ${i}`]
+      );
+    }
+    
+    res.json({ id: buildingId, buildingName, buildingCode, floors });
   } catch (err) {
     console.error("Error adding building:", err);
     res.status(500).json({ error: err.message });
@@ -32,7 +73,29 @@ router.post("/buildings", async (req, res) => {
 router.delete("/buildings/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Get all floors in this building
+    const [floors] = await db.query("SELECT id FROM floors WHERE building_id = ?", [id]);
+    
+    // For each floor, get all rooms and delete their beds
+    for (const floor of floors) {
+      const [rooms] = await db.query("SELECT id FROM rooms WHERE floor_id = ?", [floor.id]);
+      
+      for (const room of rooms) {
+        // Delete all beds in this room
+        await db.query("DELETE FROM beds WHERE room_id = ?", [room.id]);
+      }
+      
+      // Delete all rooms on this floor
+      await db.query("DELETE FROM rooms WHERE floor_id = ?", [floor.id]);
+    }
+    
+    // Delete all floors in this building
+    await db.query("DELETE FROM floors WHERE building_id = ?", [id]);
+    
+    // Finally delete the building
     await db.query("DELETE FROM buildings WHERE id = ?", [id]);
+    
     res.json({ success: true, message: "Building deleted" });
   } catch (err) {
     console.error("Error deleting building:", err);
@@ -43,9 +106,19 @@ router.delete("/buildings/:id", async (req, res) => {
 // Get all rooms
 router.get("/rooms", async (req, res) => {
   try {
-    const [results] = await db.query(
-      "SELECT r.*, b.buildingName FROM rooms r LEFT JOIN buildings b ON r.buildingId = b.id"
-    );
+    const [results] = await db.query(`
+      SELECT 
+        r.id,
+        r.room_number as roomNumber,
+        b.name as building,
+        f.floor_number as floor,
+        f.id as floor_id,
+        b.id as building_id
+      FROM rooms r
+      JOIN floors f ON r.floor_id = f.id
+      JOIN buildings b ON f.building_id = b.id
+      ORDER BY b.name, f.floor_number, r.room_number
+    `);
     res.json(results);
   } catch (err) {
     console.error("Rooms error:", err);
@@ -53,15 +126,50 @@ router.get("/rooms", async (req, res) => {
   }
 });
 
-// Add room
+// Add room(s)
 router.post("/rooms", async (req, res) => {
   try {
-    const { roomNumber, building, floor, capacity } = req.body;
-    const result = await db.query(
-      "INSERT INTO rooms (room_number, buildingId, floorName, capacity) VALUES (?, (SELECT id FROM buildings WHERE buildingName = ?), ?, ?)",
-      [roomNumber, building, floor, capacity]
+    const { roomNumber, building, floor } = req.body;
+    const numRoomsToAdd = parseInt(roomNumber);
+    
+    if (!numRoomsToAdd || numRoomsToAdd < 1) {
+      return res.status(400).json({ error: "Invalid number of rooms" });
+    }
+    
+    // First get the floor_id for the given building and floor number
+    const [floors] = await db.query(
+      "SELECT f.id FROM floors f JOIN buildings b ON f.building_id = b.id WHERE b.name = ? AND f.floor_number = ?",
+      [building, floor]
     );
-    res.json({ success: true, id: result[0].insertId });
+    
+    if (floors.length === 0) {
+      return res.status(400).json({ error: "Floor not found for this building" });
+    }
+    
+    // Get the highest existing room number for this floor
+    const [maxRoom] = await db.query(
+      "SELECT COALESCE(MAX(CAST(room_number AS UNSIGNED)), 0) as maxRoom FROM rooms WHERE floor_id = ?",
+      [floors[0].id]
+    );
+    
+    const startRoom = maxRoom[0].maxRoom + 1;
+    const insertedIds = [];
+    
+    // Add multiple rooms
+    for (let i = 0; i < numRoomsToAdd; i++) {
+      const roomNum = String(startRoom + i);
+      const [result] = await db.query(
+        "INSERT INTO rooms (room_number, floor_id) VALUES (?, ?)",
+        [roomNum, floors[0].id]
+      );
+      insertedIds.push(result.insertId);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Added ${numRoomsToAdd} room(s) - Room ${startRoom} to Room ${startRoom + numRoomsToAdd - 1}`,
+      ids: insertedIds 
+    });
   } catch (err) {
     console.error("Error adding room:", err);
     res.status(500).json({ error: err.message });
@@ -83,9 +191,21 @@ router.delete("/rooms/:id", async (req, res) => {
 // Get all beds
 router.get("/beds", async (req, res) => {
   try {
-    const [results] = await db.query(
-      "SELECT b.*, bld.buildingName FROM beds b LEFT JOIN buildings bld ON b.buildingId = bld.id"
-    );
+    const [results] = await db.query(`
+      SELECT 
+        bed.id,
+        bed.bed_number as bed_number,
+        bed.bed_number as bedNumber,
+        bed.status,
+        r.room_number as room,
+        b.name as building,
+        f.floor_number as floor
+      FROM beds bed
+      JOIN rooms r ON bed.room_id = r.id
+      JOIN floors f ON r.floor_id = f.id
+      JOIN buildings b ON f.building_id = b.id
+      ORDER BY b.name, f.floor_number, r.room_number, bed.bed_number
+    `);
     res.json(results);
   } catch (err) {
     console.error("Beds error:", err);
@@ -93,15 +213,53 @@ router.get("/beds", async (req, res) => {
   }
 });
 
-// Add bed
+// Add bed(s)
 router.post("/beds", async (req, res) => {
   try {
     const { bedNumber, room, building, floor } = req.body;
-    const result = await db.query(
-      "INSERT INTO beds (bunk_number, room_number, buildingId, floorName) VALUES (?, ?, (SELECT id FROM buildings WHERE buildingName = ?), ?)",
-      [bedNumber, room, building, floor]
+    const numBedsToAdd = parseInt(bedNumber);
+    
+    if (!numBedsToAdd || numBedsToAdd < 1) {
+      return res.status(400).json({ error: "Number of beds must be at least 1" });
+    }
+    
+    // Get room_id for the given building, floor, and room number
+    const [rooms] = await db.query(`
+      SELECT r.id 
+      FROM rooms r
+      JOIN floors f ON r.floor_id = f.id
+      JOIN buildings b ON f.building_id = b.id
+      WHERE b.name = ? AND f.floor_number = ? AND r.room_number = ?
+    `, [building, floor, room]);
+    
+    if (rooms.length === 0) {
+      return res.status(400).json({ error: "Room not found" });
+    }
+    
+    // Get the highest existing bed number for this room
+    const [maxBed] = await db.query(
+      "SELECT COALESCE(MAX(bed_number), 0) as maxBed FROM beds WHERE room_id = ?",
+      [rooms[0].id]
     );
-    res.json({ success: true, id: result[0].insertId });
+    
+    const startBed = maxBed[0].maxBed + 1;
+    const insertedIds = [];
+    
+    // Add multiple beds
+    for (let i = 0; i < numBedsToAdd; i++) {
+      const bedNum = startBed + i;
+      const [result] = await db.query(
+        "INSERT INTO beds (room_id, bed_number, status) VALUES (?, ?, 'AVAILABLE')",
+        [rooms[0].id, bedNum]
+      );
+      insertedIds.push(result.insertId);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Added ${numBedsToAdd} bed(s) - Bed ${startBed} to Bed ${startBed + numBedsToAdd - 1}`,
+      ids: insertedIds 
+    });
   } catch (err) {
     console.error("Error adding bed:", err);
     res.status(500).json({ error: err.message });
@@ -116,6 +274,89 @@ router.delete("/beds/:id", async (req, res) => {
     res.json({ success: true, message: "Bed deleted" });
   } catch (err) {
     console.error("Error deleting bed:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get all floors with building info
+router.get("/floors", async (req, res) => {
+  try {
+    const [results] = await db.query(`
+      SELECT 
+        f.id,
+        f.floor_number as floorNumber,
+        f.name as floorName,
+        b.name as building,
+        b.id as building_id
+      FROM floors f
+      JOIN buildings b ON f.building_id = b.id
+      ORDER BY b.name, f.id
+    `);
+    res.json(results);
+  } catch (err) {
+    console.error("Floors error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Add floor(s)
+router.post("/floors", async (req, res) => {
+  try {
+    const { building, floorNumber } = req.body;
+    const numFloorsToAdd = parseInt(floorNumber);
+    
+    if (!numFloorsToAdd || numFloorsToAdd < 1) {
+      return res.status(400).json({ error: "Invalid number of floors" });
+    }
+    
+    // Get building_id for the given building name
+    const [buildings] = await db.query(
+      "SELECT id FROM buildings WHERE name = ?",
+      [building]
+    );
+    
+    if (buildings.length === 0) {
+      return res.status(400).json({ error: "Building not found" });
+    }
+    
+    // Get the highest existing floor number
+    const [maxFloor] = await db.query(
+      "SELECT COALESCE(MAX(floor_number), 0) as maxFloor FROM floors WHERE building_id = ?",
+      [buildings[0].id]
+    );
+    
+    const startFloor = maxFloor[0].maxFloor + 1;
+    const insertedIds = [];
+    
+    // Add multiple floors
+    for (let i = 0; i < numFloorsToAdd; i++) {
+      const floorNum = startFloor + i;
+      const [result] = await db.query(
+        "INSERT INTO floors (building_id, floor_number, name) VALUES (?, ?, ?)",
+        [buildings[0].id, floorNum, `Floor ${floorNum}`]
+      );
+      insertedIds.push(result.insertId);
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Added ${numFloorsToAdd} floor(s) starting from Floor ${startFloor}`,
+      ids: insertedIds 
+    });
+  } catch (err) {
+    console.error("Error adding floor:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Delete floor
+router.delete("/floors/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.query("DELETE FROM floors WHERE id = ?", [id]);
+    res.json({ success: true, message: "Floor deleted" });
+  } catch (err) {
+    console.error("Error deleting floor:", err);
     res.status(500).json({ error: err.message });
   }
 });

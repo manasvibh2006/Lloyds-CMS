@@ -3,7 +3,7 @@ const db = require("../db");
 const router = express.Router();
 
 // Get bed vacancies by building
-router.get("/vacancies", (req, res) => {
+router.get("/vacancies", async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -20,22 +20,16 @@ router.get("/vacancies", (req, res) => {
       ORDER BY b.name
     `;
 
-    db.query(query, (err, results) => {
-      if (err) {
-        console.error("Error fetching vacancies:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
-
-      const vacancyData = results || [];
-      res.json(vacancyData);
-    });
+    const [results] = await db.query(query);
+    const vacancyData = results || [];
+    res.json(vacancyData);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching vacancies:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-router.get("/all-contractors", (req, res) => {
+router.get("/all-contractors", async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -48,22 +42,16 @@ router.get("/all-contractors", (req, res) => {
       ORDER BY contractor_name
     `;
     
-    db.query(query, (err, results) => {
-      if (err) {
-        console.error("Error fetching contractors:", err);
-        return res.status(500).json({ error: "Database error" });
-      }
-
-      res.json(results || []);
-    });
+    const [results] = await db.query(query);
+    res.json(results || []);
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error fetching contractors:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 // Get dashboard summary data by vendor/contractor
-router.get("/summary", (req, res) => {
+router.get("/summary", async (req, res) => {
   try {
     // Get first contractor with company and count of allocations
     const query = `
@@ -77,29 +65,24 @@ router.get("/summary", (req, res) => {
       LIMIT 1
     `;
     
-    db.query(query, (err, results) => {
-      if (err) {
-        console.error("Error fetching dashboard data:", err);
-        return res.status(500).json({ error: "Database error", details: err.message });
-      }
+    const [results] = await db.query(query);
 
-      if (!results || results.length === 0) {
-        return res.json({
-          vendorName: "N/A",
-          companyName: "N/A",
-          activeEmployees: 0,
-          inactiveEmployees: 0
-        });
-      }
-
-      const data = results[0];
-      
-      res.json({
-        vendorName: data.contractor_name || "N/A",
-        companyName: data.company || "N/A",
-        activeEmployees: data.activeEmployees || 0,
+    if (!results || results.length === 0) {
+      return res.json({
+        vendorName: "N/A",
+        companyName: "N/A",
+        activeEmployees: 0,
         inactiveEmployees: 0
       });
+    }
+
+    const data = results[0];
+    
+    res.json({
+      vendorName: data.contractor_name || "N/A",
+      companyName: data.company || "N/A",
+      activeEmployees: data.activeEmployees || 0,
+      inactiveEmployees: 0
     });
   } catch (error) {
     console.error("Error in dashboard summary:", error);

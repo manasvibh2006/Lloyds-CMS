@@ -13,9 +13,41 @@ const isExpired = (endDate) => {
   return new Date(endDate) < new Date();
 };
 
-function AllocationList({ allocations = [] }) {
+function AllocationList({ allocations = [], onDelete }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // 'all', 'expired', 'active'
+  const [deletingId, setDeletingId] = useState(null);
+
+  const handleDelete = async (allocation) => {
+    const confirmMsg = `Are you sure you want to delete the allocation for ${allocation.userName} (${allocation.userId}) at ${allocation.buildingName} - Room ${allocation.room_number}?`;
+    
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      setDeletingId(allocation.id);
+      const response = await fetch(`http://localhost:5000/api/allocations/${allocation.id}?bedId=${allocation.bed_id}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete allocation');
+      }
+
+      alert('Allocation deleted successfully!');
+      
+      // Call parent's onDelete callback to refresh allocations
+      if (onDelete) {
+        onDelete(allocation.id);
+      }
+    } catch (error) {
+      console.error('Error deleting allocation:', error);
+      alert('Failed to delete allocation: ' + error.message);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Filter allocations based on search term and filter type
   const filteredAllocations = useMemo(() => {
@@ -43,7 +75,7 @@ function AllocationList({ allocations = [] }) {
         alloc.buildingName?.toLowerCase().includes(search) ||
         alloc.floorName?.toLowerCase().includes(search) ||
         alloc.room_number?.toString().includes(search) ||
-        alloc.bunk_number?.toString().includes(search)
+        alloc.bed_number?.toString().includes(search)
       );
     }
     
@@ -167,6 +199,7 @@ function AllocationList({ allocations = [] }) {
             <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "left" }}>Duration</th>
             <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "left" }}>Remarks</th>
             <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "center" }}>Status</th>
+            <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "center" }}>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -180,7 +213,7 @@ function AllocationList({ allocations = [] }) {
                 <div style={{ fontSize: "14px" }}>
                   <strong>{alloc.buildingName}</strong><br/>
                   {alloc.floorName} - Room {alloc.room_number}<br/>
-                  Bunk {alloc.bunk_number}{alloc.position}
+                  Bed {alloc.bed_number}
                 </div>
               </td>
               <td style={{ border: "1px solid #ddd", padding: "10px" }}>
@@ -225,6 +258,41 @@ function AllocationList({ allocations = [] }) {
                 }}>
                   {alloc.status}
                 </span>
+              </td>
+              <td style={{ 
+                border: "1px solid #ddd", 
+                padding: "10px", 
+                textAlign: "center"
+              }}>
+                <button
+                  onClick={() => handleDelete(alloc)}
+                  disabled={deletingId === alloc.id}
+                  style={{
+                    padding: "6px 12px",
+                    backgroundColor: deletingId === alloc.id ? "#ccc" : "#ef4444",
+                    color: "#ffffff",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: deletingId === alloc.id ? "not-allowed" : "pointer",
+                    fontSize: "12px",
+                    fontWeight: "600",
+                    transition: "all 0.2s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    if (deletingId !== alloc.id) {
+                      e.target.style.backgroundColor = "#dc2626";
+                      e.target.style.transform = "translateY(-1px)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (deletingId !== alloc.id) {
+                      e.target.style.backgroundColor = "#ef4444";
+                      e.target.style.transform = "translateY(0)";
+                    }
+                  }}
+                >
+                  {deletingId === alloc.id ? "Deleting..." : "Delete"}
+                </button>
               </td>
             </tr>
           ))}

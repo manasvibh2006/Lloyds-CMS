@@ -23,8 +23,8 @@ const sidebarConfig = [
   },
   {
     icon: MdHomeWork,
-    label: "Blocks",
-    path: "blocks",
+    label: "Camps",
+    path: "camps",
   },
 ];
 

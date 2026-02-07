@@ -3,16 +3,12 @@ const router = express.Router();
 const db = require("../db"); 
 
 // GET all allocations
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   console.log("📡 Fetching allocations...");
   
-  // First check if allocations table exists and has data
-  db.query("SELECT COUNT(*) as count FROM allocations", (err, countResult) => {
-    if (err) {
-      console.error("❌ Error checking allocations table:", err.message);
-      // Table might not exist, return empty array
-      return res.json([]);
-    }
+  try {
+    // First check if allocations table exists and has data
+    const [countResult] = await db.query("SELECT COUNT(*) as count FROM allocations");
     
     const count = countResult[0].count;
     console.log(`📊 Total allocations in DB: ${count}`);
@@ -22,8 +18,15 @@ router.get("/", (req, res) => {
       return res.json([]);
     }
     
+    // Get all buildings ordered by ID to calculate sequential building numbers
+    const [buildings] = await db.query("SELECT id FROM buildings ORDER BY id ASC");
+    const buildingNumberMap = {};
+    buildings.forEach((building, index) => {
+      buildingNumberMap[building.id] = index + 1;
+    });
+    
     // Fetch with joins - simplified query
-    db.query(`
+    const [results] = await db.query(`
       SELECT 
         a.id,
         a.user_id as userId,
@@ -35,10 +38,12 @@ router.get("/", (req, res) => {
         a.allocated_at as created_at,
         a.start_date,
         a.end_date,
-        b.bunk_number,
-        b.position,
+        a.bed_id,
+        b.bed_number,
         r.room_number,
+        f.floor_number,
         f.id as floorId,
+        bld.id as buildingId,
         bld.name as buildingName
       FROM allocations a
       JOIN beds b ON a.bed_id = b.id
@@ -46,20 +51,25 @@ router.get("/", (req, res) => {
       JOIN floors f ON r.floor_id = f.id
       JOIN buildings bld ON f.building_id = bld.id
       ORDER BY a.allocated_at DESC
-    `, (err, results) => {
-      if (err) {
-        console.error("❌ Allocations fetch error:", err.message);
-        console.error("Full error:", err);
-        return res.status(500).json({ error: err.message });
-      }
-      console.log(`✅ Found ${results.length} allocations`);
-      res.json(results);
-    });
-  });
+    `);
+    
+    // Add sequential building number to each result
+    const resultsWithBuildingNum = results.map(allocation => ({
+      ...allocation,
+      buildingNumber: buildingNumberMap[allocation.buildingId]
+    }));
+    
+    console.log(`✅ Found ${results.length} allocations`);
+    res.json(resultsWithBuildingNum);
+  } catch (err) {
+    console.error("❌ Error checking allocations table:", err.message);
+    // Table might not exist, return empty array
+    return res.json([]);
+  }
 });
 
 // CREATE ALLOCATION
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   console.log("🔥 ALLOCATION API HIT 🔥");
   console.log("REQ BODY:", req.body);
 
@@ -78,59 +88,45 @@ router.post("/", (req, res) => {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // Check bed availability and insert in one go
-  db.query(
-    `INSERT INTO allocations
-     (user_id, user_name, company, bed_id, contractor_name, remarks, start_date, end_date, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'BOOKED')`,
-    [userId, userName, company, bedId, contractorName || 'N/A', remarks || null, startDate || null, endDate || null],
-    (err, result) => {
-      if (err) {
-        console.error("❌ Allocation error:", err);
-        return res.status(500).json({ error: err.message });
-      }
+  try {
+    // Check bed availability and insert in one go
+    await db.query(
+      `INSERT INTO allocations
+       (user_id, user_name, company, bed_id, contractor_name, remarks, start_date, end_date, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'BOOKED')`,
+      [userId, userName, company, bedId, contractorName || 'N/A', remarks || null, startDate || null, endDate || null]
+    );
 
-      // Update bed status
-      db.query(
-        "UPDATE beds SET status = 'BOOKED' WHERE id = ?",
-        [bedId],
-        (updateErr) => {
-          if (updateErr) {
-            console.error("Error updating bed:", updateErr);
-            return res.status(500).json({ error: updateErr.message });
-          }
-          res.json({ message: "Allocation successful" });
-        }
-      );
-    }
-  );
+    // Update bed status
+    await db.query(
+      "UPDATE beds SET status = 'BOOKED' WHERE id = ?",
+      [bedId]
+    );
+    
+    res.json({ message: "Allocation successful" });
+  } catch (err) {
+    console.error("❌ Allocation error:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // DELETE - Unbook allocation and release bed
-router.delete("/:id", (req, res) => {
+router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   const { bedId } = req.query;
 
-  // Update bed status to AVAILABLE
-  db.query("UPDATE beds SET status = 'AVAILABLE' WHERE id = ?", [bedId], (err) => {
-    if (err) {
-      console.error("Error updating bed:", err);
-      return res.status(500).json({ error: err.message });
-    }
+  try {
+    // Update bed status to AVAILABLE
+    await db.query("UPDATE beds SET status = 'AVAILABLE' WHERE id = ?", [bedId]);
 
-    // Delete or mark allocation as released
-    db.query(
-      "UPDATE allocations SET status = 'RELEASED', released_at = NOW() WHERE id = ?",
-      [id],
-      (updateErr) => {
-        if (updateErr) {
-          console.error("Error unbooking allocation:", updateErr);
-          return res.status(500).json({ error: updateErr.message });
-        }
-        res.json({ success: true, message: "Bed unbooked successfully" });
-      }
-    );
-  });
+    // Delete the allocation record
+    await db.query("DELETE FROM allocations WHERE id = ?", [id]);
+    
+    res.json({ success: true, message: "Bed unbooked successfully" });
+  } catch (err) {
+    console.error("Error unbooking allocation:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

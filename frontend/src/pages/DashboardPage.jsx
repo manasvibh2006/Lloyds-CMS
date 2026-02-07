@@ -78,16 +78,52 @@ function DashboardPage({ onNavigate }) {
 
   return (
     <div className="dashboard-container">
+      {error && <div className="error-message">{error}</div>}
+
       {/* Dashboard Summary Section */}
       <div className="dashboard-summary">
-        <div className="summary-card company-card">
-          <h3>Company Name</h3>
-          <p>{dashboardData.companyName}</p>
+        {/* Left Column - Company, Allocations and Navigation Cards */}
+        <div className="left-column">
+          <div className="top-cards">
+            <div className="summary-card company-card">
+              <h3>Company Name</h3>
+              <p>{dashboardData.companyName}</p>
+            </div>
+            <div className="summary-card active-card">
+              <h3>Total Allocations</h3>
+              <p className="count">{dashboardData.activeEmployees}</p>
+            </div>
+          </div>
+
+          {/* Navigation Cards in 2x2 Grid */}
+          <div className="dashboard-cards">
+            <DashboardCard
+              title="Booking"
+              subtitle="Book bed for employees"
+              onClick={() => onNavigate("booking")}
+            />
+
+            <DashboardCard
+              title="Allocations"
+              subtitle="Employee allocations"
+              onClick={() => onNavigate("allocation")}
+            />
+
+            <DashboardCard
+              title="Camps"
+              subtitle="Manage buildings & rooms"
+              onClick={() => onNavigate("blocks")}
+            />
+
+            <DashboardCard
+              title="Reports"
+              subtitle="Camp management reports"
+              onClick={() => onNavigate("reports")}
+            />
+          </div>
         </div>
-        <div className="summary-card active-card">
-          <h3>Total Allocations</h3>
-          <p className="count">{dashboardData.activeEmployees}</p>
-        </div>
+
+        {/* Right Column - Vacancies Card */}
         <div className="summary-card vacancy-card">
           <h3>Vacancies</h3>
           <div className="vacancy-content">
@@ -106,29 +142,6 @@ function DashboardPage({ onNavigate }) {
             )}
           </div>
         </div>
-      </div>
-
-      {error && <div className="error-message">{error}</div>}
-
-      {/* Main Navigation Cards */}
-      <div className="dashboard-cards">
-        <DashboardCard
-          title="Booking"
-          subtitle="Book bed for labourer"
-          onClick={() => onNavigate("booking")}
-        />
-
-        <DashboardCard
-          title="Allocations"
-          subtitle="Labourer allocations"
-          onClick={() => onNavigate("allocation")}
-        />
-
-        <DashboardCard
-          title="Reports"
-          subtitle="Camp management reports"
-          onClick={() => onNavigate("reports")}
-        />
       </div>
 
       {/* Contractors Table Section */}

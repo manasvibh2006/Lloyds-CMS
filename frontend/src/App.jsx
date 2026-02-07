@@ -6,7 +6,7 @@ import BookingPage from "./pages/BookingPage";
 import UserInputPage from "./pages/UserInputPage";
 import AllocationList from "./components/AllocationList";
 import ReportPage from "./pages/ReportPage";
-import BlockPage from "./pages/blockPage";
+import CampPage from "./pages/CampPage";
 
 
 
@@ -22,14 +22,25 @@ function App() {
   const [bookingData, setBookingData] = useState(null);
 
   // Fetch allocations
-  useEffect(() => {
+  const fetchAllocations = () => {
     if (currentUser) {
       fetch('http://localhost:5000/api/allocations')
         .then(res => res.json())
         .then(data => setAllocations(data))
         .catch(err => console.error('Allocation fetch error:', err));
     }
+  };
+
+  useEffect(() => {
+    fetchAllocations();
   }, [currentUser, activePage]);
+
+  const handleDeleteAllocation = (deletedId) => {
+    // Optimistically update the UI
+    setAllocations(prev => prev.filter(alloc => alloc.id !== deletedId));
+    // Refetch to ensure sync
+    fetchAllocations();
+  };
 
   // login gate
   if (!currentUser) {
@@ -78,19 +89,19 @@ function App() {
       )}
 
       {activePage === "allocation" && (
-        <AllocationList allocations={allocations} />
+        <AllocationList allocations={allocations} onDelete={handleDeleteAllocation} />
       )}
 
       {activePage === "allocations" && (
-        <AllocationList allocations={allocations} />
+        <AllocationList allocations={allocations} onDelete={handleDeleteAllocation} />
       )}
 
       {activePage === "reports" && (
         <ReportPage onNavigate={(page) => setActivePage(page)} />
       )}
 
-      {activePage === "blocks" && (
-        <BlockPage onNavigate={(page) => setActivePage(page)} />
+      {activePage === "camps" && (
+        <CampPage onNavigate={(page) => setActivePage(page)} />
       )}
     </DashboardLayout>
   );

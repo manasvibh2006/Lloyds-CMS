@@ -54,7 +54,7 @@ function ReportPage({ onNavigate }) {
     
     data.forEach(allocation => {
       const building = allocation.buildingName || "Unknown";
-      const floor = allocation.floorName || "Unknown";
+      const floor = allocation.floor_number || "Unknown";
       const room = allocation.room_number || "Unknown";
       
       if (!grouped[building]) {
@@ -121,32 +121,18 @@ function ReportPage({ onNavigate }) {
     return Object.keys(groupedData[selectedBuilding] || {});
   };
   
-  const generateLocationCode = (building, floor, room, bed) => {
-    // Convert Building (Building-A=1, Building-B=2, etc.)
-    let buildingNum = '1';
-    if (building) {
-      const hyphenMatch = building.match(/-([A-Z])/i);
-      if (hyphenMatch) {
-        buildingNum = String(hyphenMatch[1].toUpperCase().charCodeAt(0) - 64); // A=1, B=2
-      }
-    }
+  const generateLocationCode = (allocation) => {
+    // Use buildingNumber (sequential, not database ID) - 1 digit
+    const buildingNum = String(allocation.buildingNumber || 1).slice(-1);
     
-    // Convert Floor (ground=1, first=2, second=3, etc.)
-    let floorNum = '1';
-    if (floor) {
-      const floorLower = floor.toLowerCase().trim();
-      if (floorLower === 'ground') {
-        floorNum = '1';
-      } else if (floorLower === 'first') {
-        floorNum = '2';
-      } else if (floorLower === 'second') {
-        floorNum = '3';
-      }
-    }
+    // Use floor_number (1 digit)
+    const floorNum = String(allocation.floor_number || 1).slice(-1);
     
-    // Extract room and bed numbers (handle both string and number types)
-    const roomNum = String(room).replace(/\D/g, '').padStart(2, '0') || '00';
-    const bedNum = String(bed).replace(/\D/g, '').padStart(2, '0') || '00';
+    // Use room_number (pad to 2 digits)
+    const roomNum = String(allocation.room_number || 0).padStart(2, '0');
+    
+    // Use bed_number (pad to 2 digits)
+    const bedNum = String(allocation.bed_number || 0).padStart(2, '0');
     
     // Combine: Building(1) + Floor(1) + Room(2) + Bed(2) = 6 digits
     return `${buildingNum}${floorNum}${roomNum}${bedNum}`;
@@ -204,7 +190,7 @@ function ReportPage({ onNavigate }) {
           
           worksheetData.push([
             "User ID", "User Name", "Company", "Contractor", 
-            "Bed", "Position", "Start Date", "End Date", "Status"
+            "Bed", "Start Date", "End Date", "Status"
           ]);
           
           allocsInRoom.forEach(alloc => {
@@ -213,8 +199,7 @@ function ReportPage({ onNavigate }) {
               alloc.userName,
               alloc.company,
               alloc.contractorName,
-              alloc.bunkNumber,
-              alloc.position,
+              alloc.bed_number,
               alloc.startDate,
               alloc.endDate,
               alloc.status
@@ -420,7 +405,7 @@ function ReportPage({ onNavigate }) {
                       Object.keys(filteredData[building][floor] || {}).forEach(room => {
                         const allocsInRoom = filteredData[building][floor][room];
                         allocsInRoom.forEach((alloc, idx) => {
-                          const allocationCode = generateLocationCode(building, floor, room, alloc.bunk_number);
+                          const allocationCode = generateLocationCode(alloc);
                           rows.push(
                             <tr key={`${building}-${floor}-${room}-${idx}`}>
                               <td><strong className="allocation-code">{allocationCode}</strong></td>

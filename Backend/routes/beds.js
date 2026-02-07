@@ -3,7 +3,7 @@ const db = require("../db");
 
 const router = express.Router();
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
   const { roomId } = req.query;
   console.log("🛏️ Fetching beds for room ID:", roomId);
   
@@ -11,35 +11,35 @@ router.get("/", (req, res) => {
     return res.status(400).json({ error: "Room ID is required" });
   }
   
-  db.query(
-    "SELECT * FROM beds WHERE room_id = ? ORDER BY bunk_number, position",
-    [roomId],
-    (err, results) => {
-      if (err) {
-        console.error("❌ Beds error:", err);
-        return res.status(500).json({ error: err.message });
-      }
-      console.log(`📊Found beds: ${results.length} (Available: ${results.filter(b => b.status === 'AVAILABLE').length}, Booked: ${results.filter(b => b.status === 'BOOKED').length})`);
-      res.json(results);
-    }
-  );
+  try {
+    const [results] = await db.query(
+      "SELECT * FROM beds WHERE room_id = ? ORDER BY bed_number",
+      [roomId]
+    );
+    console.log(`📊Found beds: ${results.length} (Available: ${results.filter(b => b.status === 'AVAILABLE').length}, Booked: ${results.filter(b => b.status === 'BOOKED').length})`);
+    res.json(results);
+  } catch (err) {
+    console.error("❌ Beds error:", err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // Create bed
-router.post("/", (req, res) => {
-  const { roomId, bunkNumber, position, status } = req.body;
-  if (!roomId || bunkNumber == null || !position) {
-    return res.status(400).json({ error: "roomId, bunkNumber, position are required" });
+router.post("/", async (req, res) => {
+  const { roomId, bedNumber, status } = req.body;
+  if (!roomId || bedNumber == null) {
+    return res.status(400).json({ error: "roomId and bedNumber are required" });
   }
 
-  db.query(
-    "INSERT INTO beds (room_id, bunk_number, position, status) VALUES (?, ?, ?, ?)",
-    [roomId, bunkNumber, position, status || "AVAILABLE"],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId, room_id: roomId, bunk_number: bunkNumber, position, status: status || "AVAILABLE" });
-    }
-  );
+  try {
+    const [result] = await db.query(
+      "INSERT INTO beds (room_id, bed_number, status) VALUES (?, ?, ?)",
+      [roomId, bedNumber, status || "AVAILABLE"]
+    );
+    res.status(201).json({ id: result.insertId, room_id: roomId, bed_number: bedNumber, status: status || "AVAILABLE" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

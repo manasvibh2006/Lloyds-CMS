@@ -3,7 +3,7 @@ const db = require("../db");
 
 const router = express.Router();
 
-router.post("/", (req, res) => {
+router.post("/", async (req, res) => {
   const { userName, company, bedId } = req.body;
 
   if (!userName || !company || !bedId) {
@@ -15,14 +15,15 @@ router.post("/", (req, res) => {
     VALUES (?, ?, ?, 'PENDING')
   `;
 
-  db.query(sql, [userName, company, bedId], (err, result) => {
-    if (err) return res.status(500).json(err);
-
+  try {
+    const [result] = await db.query(sql, [userName, company, bedId]);
     res.json({
       message: "Booking stored",
       bookingId: result.insertId
     });
-  });
+  } catch (err) {
+    return res.status(500).json(err);
+  }
 });
 
 module.exports = router;

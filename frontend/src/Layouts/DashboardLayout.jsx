@@ -22,15 +22,7 @@ function DashboardLayout({ children, onLogout, setActivePage, activePage}) {
         />
 
         {/* MAIN CONTENT */}
-        <div
-          style={{
-            flex: 1,
-            padding: "16px",
-            overflowY: "auto",
-            overflowX: "hidden",
-            minHeight: 0
-          }}
-        >
+        <div className="main-content-area">
           {children}
         </div>
       </div>

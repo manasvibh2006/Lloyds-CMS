@@ -1,5 +1,6 @@
 import sidebarConfig from "../configs/sideconfig";
 import "../styles/sidebar.css";
+import { FaCog, FaCopyright } from "react-icons/fa";
 
 function Sidebar({ active, onChange, isOpen, onToggle }) {
   return (
@@ -27,6 +28,21 @@ function Sidebar({ active, onChange, isOpen, onToggle }) {
           );
         })}
       </ul>
+
+      {/* Sidebar Footer */}
+      <div className="sidebar-footer">
+        <div className="sidebar-item sidebar-settings" title={!isOpen ? "Settings" : ""}>
+          <FaCog className="sidebar-icon" />
+          {isOpen && <span className="sidebar-label">Settings</span>}
+        </div>
+        
+        {isOpen && (
+          <div className="sidebar-copyright">
+            <FaCopyright className="copyright-icon" />
+            <span>2026 Lloyds CMS</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

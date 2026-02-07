@@ -19,7 +19,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: url('../assets/image.png') no-repeat center center;
+  background-size: cover;
   padding: 20px;
   position: relative;
 }

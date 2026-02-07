@@ -2,12 +2,14 @@
   background: linear-gradient(180deg, #2C3E50 0%, #1A2332 100%);
   color: white;
   height: 100vh;
-  padding: 16px;
+  padding: 16px 16px 60px 16px;
   box-shadow: 2px 0 8px rgba(0,0,0,0.2);
   flex-shrink: 0;
-  overflow-y: auto;
+  overflow: hidden;
   transition: width 0.3s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar.closed {
@@ -47,6 +49,28 @@
   list-style: none;
   padding: 0;
   margin: 0;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+}
+
+.sidebar-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+.sidebar-list::-webkit-scrollbar-thumb {
+  background: rgba(196, 28, 59, 0.6);
+  border-radius: 10px;
+}
+
+.sidebar-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(196, 28, 59, 0.8);
 }
 
 .sidebar-item {
@@ -86,4 +110,38 @@
 
 .sidebar-label {
   font-size: 14px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  margin-top: 16px;
+  padding-top: 12px;
+  padding-bottom: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.sidebar-settings {
+  margin-bottom: 8px;
+  opacity: 0.9;
+}
+
+.sidebar-settings:hover {
+  opacity: 1;
+}
+
+.sidebar-copyright {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.copyright-icon {
+  font-size: 12px;
 }

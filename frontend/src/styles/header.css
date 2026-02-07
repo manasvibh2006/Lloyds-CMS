@@ -2,7 +2,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  /* solid gradient header (no background image) */
   background: linear-gradient(90deg, #2C3E50 0%, #1A2332 100%);
   padding: 12px 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -57,11 +56,20 @@
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
   background-color: #F8F9FA;
   background-image: url("../assets/image.png");
   background-repeat: no-repeat;
   background-position: center top;
   background-size: cover;
+}
+
+.main-content-area {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .header-cms {
