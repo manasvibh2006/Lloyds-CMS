@@ -31,7 +31,11 @@ function Sidebar({ active, onChange, isOpen, onToggle }) {
 
       {/* Sidebar Footer */}
       <div className="sidebar-footer">
-        <div className="sidebar-item sidebar-settings" title={!isOpen ? "Settings" : ""}>
+        <div 
+          className={`sidebar-item sidebar-settings ${active === "settings" ? "active" : ""}`}
+          onClick={() => onChange("settings")}
+          title={!isOpen ? "Settings" : ""}
+        >
           <FaCog className="sidebar-icon" />
           {isOpen && <span className="sidebar-label">Settings</span>}
         </div>

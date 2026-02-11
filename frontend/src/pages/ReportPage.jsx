@@ -14,6 +14,17 @@ const formatDate = (dateString) => {
   return `${day}/${month}/${year}`;
 };
 
+const getDisplayStatus = (status) => {
+  const normalized = (status || "").toUpperCase();
+  return normalized === "RELEASED" ? "CHECKED_OUT" : normalized;
+};
+
+const getStatusClassName = (status) => {
+  const normalized = (status || "").toUpperCase();
+  if (normalized === "RELEASED") return "status-checked_out";
+  return `status-${normalized.toLowerCase()}`;
+};
+
 function ReportPage({ onNavigate }) {
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -121,20 +132,12 @@ function ReportPage({ onNavigate }) {
     return Object.keys(groupedData[selectedBuilding] || {});
   };
   
-  const generateLocationCode = (allocation) => {
-    // Use buildingNumber (sequential, not database ID) - 1 digit
+  const getAllocationCode = (allocation) => {
+    if (allocation.allocation_code) return allocation.allocation_code;
     const buildingNum = String(allocation.buildingNumber || 1).slice(-1);
-    
-    // Use floor_number (1 digit)
     const floorNum = String(allocation.floor_number || 1).slice(-1);
-    
-    // Use room_number (pad to 2 digits)
-    const roomNum = String(allocation.room_number || 0).padStart(2, '0');
-    
-    // Use bed_number (pad to 2 digits)
-    const bedNum = String(allocation.bed_number || 0).padStart(2, '0');
-    
-    // Combine: Building(1) + Floor(1) + Room(2) + Bed(2) = 6 digits
+    const roomNum = String(allocation.room_number || 0).padStart(2, "0");
+    const bedNum = String(allocation.bed_number || 0).padStart(2, "0");
     return `${buildingNum}${floorNum}${roomNum}${bedNum}`;
   };
 
@@ -161,60 +164,41 @@ function ReportPage({ onNavigate }) {
 
   const downloadExcel = () => {
     const filteredData = getFilteredData();
-    const worksheetData = [];
-    worksheetData.push(["CAMP MANAGEMENT REPORT"]);
-    worksheetData.push(["Company: Lloyds"]);
-    worksheetData.push(["Date:", new Date().toLocaleDateString()]);
-    
-    if (selectedBuilding !== "all") {
-      worksheetData.push(["Building Filter:", selectedBuilding]);
-    }
-    if (selectedFloor !== "all") {
-      worksheetData.push(["Floor Filter:", selectedFloor]);
-    }
-    if (selectedUser !== "all") {
-      worksheetData.push(["User Filter:", selectedUser]);
-    }
-    
-    worksheetData.push([]);
-    
-    Object.keys(filteredData).forEach(building => {
-      worksheetData.push([`BUILDING: ${building}`]);
-      
-      Object.keys(filteredData[building] || {}).forEach(floor => {
-        worksheetData.push([`  FLOOR: ${floor}`]);
-        
-        Object.keys(filteredData[building][floor] || {}).forEach(room => {
+    const worksheetData = [[
+      "Allocation Code",
+      "User ID",
+      "User Name",
+      "Company",
+      "Contractor",
+      "Duration",
+      "Status"
+    ]];
+
+    Object.keys(filteredData).forEach((building) => {
+      Object.keys(filteredData[building] || {}).forEach((floor) => {
+        Object.keys(filteredData[building][floor] || {}).forEach((room) => {
           const allocsInRoom = filteredData[building][floor][room];
-          worksheetData.push([`    ROOM: ${room}`, `Beds Occupied: ${allocsInRoom.length}`]);
-          
-          worksheetData.push([
-            "User ID", "User Name", "Company", "Contractor", 
-            "Bed", "Start Date", "End Date", "Status"
-          ]);
-          
-          allocsInRoom.forEach(alloc => {
+          allocsInRoom.forEach((alloc) => {
             worksheetData.push([
-              alloc.userId,
-              alloc.userName,
-              alloc.company,
-              alloc.contractorName,
-              alloc.bed_number,
-              alloc.startDate,
-              alloc.endDate,
-              alloc.status
+              getAllocationCode(alloc),
+              alloc.userId || "",
+              alloc.userName || "",
+              alloc.company || "",
+              alloc.contractorName || "",
+              alloc.start_date && alloc.end_date
+                ? `${formatDate(alloc.start_date)} to ${formatDate(alloc.end_date)}`
+                : "No duration set",
+              getDisplayStatus(alloc.status)
             ]);
           });
-          
-          worksheetData.push([]);
         });
       });
     });
     
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    worksheet['!cols'] = [
-      { wch: 12 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
-      { wch: 8 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, { wch: 10 }
+    worksheet["!cols"] = [
+      { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+      { wch: 30 }, { wch: 12 }
     ];
     
     const workbook = XLSX.utils.book_new();
@@ -405,7 +389,7 @@ function ReportPage({ onNavigate }) {
                       Object.keys(filteredData[building][floor] || {}).forEach(room => {
                         const allocsInRoom = filteredData[building][floor][room];
                         allocsInRoom.forEach((alloc, idx) => {
-                          const allocationCode = generateLocationCode(alloc);
+                          const allocationCode = getAllocationCode(alloc);
                           rows.push(
                             <tr key={`${building}-${floor}-${room}-${idx}`}>
                               <td><strong className="allocation-code">{allocationCode}</strong></td>
@@ -426,8 +410,8 @@ function ReportPage({ onNavigate }) {
                                   <div style={{ color: "#999", fontSize: "12px", fontStyle: "italic" }}>No duration set</div>
                                 )}
                               </td>
-                              <td className={`status-${alloc.status?.toLowerCase()}`}>
-                                {alloc.status}
+                              <td className={getStatusClassName(alloc.status)}>
+                                {getDisplayStatus(alloc.status)}
                               </td>
                             </tr>
                           );

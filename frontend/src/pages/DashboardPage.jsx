@@ -112,7 +112,7 @@ function DashboardPage({ onNavigate }) {
             <DashboardCard
               title="Camps"
               subtitle="Manage buildings & rooms"
-              onClick={() => onNavigate("blocks")}
+              onClick={() => onNavigate("camps")}
             />
 
             <DashboardCard

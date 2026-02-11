@@ -18,7 +18,8 @@ app.use("/api/bookings", require("./routes/bookings"));
 app.use("/api/allocations", require("./routes/allocations"));
 app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/auth", require("./routes/auth"));
-app.use("/api/blocks", require("./routes/blocks"));
+app.use("/api/camps", require("./routes/camps"));
+app.use("/api/blacklist", require("./routes/blacklist"));
 
 // root test
 app.get("/", (req, res) => {
@@ -31,5 +32,5 @@ const server = app.listen(5000, () => {
 
 // Keep process alive
 setInterval(() => {
-  console.log("💓 Server heartbeat");
+  console.log("Server heartbeat");
 }, 30000);

@@ -8,6 +8,8 @@ function CampPage({ onNavigate }) {
   const [buildings, setBuildings] = useState([]);
   const [floors, setFloors] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [bedRooms, setBedRooms] = useState([]);
+  const [filteredFloorRooms, setFilteredFloorRooms] = useState([]);
   const [beds, setBeds] = useState([]);
   const [buildingFloors, setBuildingFloors] = useState({}); // Store actual floors per building
   const [loading, setLoading] = useState(false);
@@ -20,7 +22,7 @@ function CampPage({ onNavigate }) {
   const [floorForm, setFloorForm] = useState({ building: "", floorNumber: "" });
 
   // Form states for Room
-  const [roomForm, setRoomForm] = useState({ roomNumber: "", building: "", floor: "", capacity: "" });
+  const [roomForm, setRoomForm] = useState({ roomNumber: "", building: "", floor: "", floorId: "", capacity: "" });
 
   // Form states for Bed
   const [bedForm, setBedForm] = useState({ bedNumber: "", room: "", building: "", floor: "" });
@@ -34,6 +36,20 @@ function CampPage({ onNavigate }) {
   const [bedSearch, setBedSearch] = useState("");
   const [bedCodeSearch, setBedCodeSearch] = useState(""); // For 6-digit code search
   const [deleteForm, setDeleteForm] = useState({ building: "", floor: "", room: "", bed: "" });
+  const [buildingSequentialMap, setBuildingSequentialMap] = useState({}); // Map building name to sequential position
+
+  // Create sequential building map when buildings change
+  useEffect(() => {
+    if (buildings.length > 0) {
+      const map = {};
+      // Sort buildings by their ID/creation order (same order as backend)
+      const sortedBuildings = [...buildings].sort((a, b) => a.id - b.id);
+      sortedBuildings.forEach((building, index) => {
+        map[building.buildingName] = index + 1; // 1, 2, 3...
+      });
+      setBuildingSequentialMap(map);
+    }
+  }, [buildings]);
 
   // Filtered data based on search
   const filteredBuildings = buildings.filter(b => 
@@ -46,38 +62,33 @@ function CampPage({ onNavigate }) {
     (floorSearch === "" || f.floorNumber.toString().includes(floorSearch))
   );
 
-  const filteredRooms = rooms.filter(r => 
-    r.building === deleteForm.building &&
-    String(r.floor) === String(deleteForm.floor) &&
-    String(r.roomNumber) === String(deleteForm.room)
+  const filteredRooms = filteredFloorRooms.filter(
+    (r) => String(r.roomNumber) === String(deleteForm.room)
   );
 
   const filteredBeds = beds.filter(b => 
     (deleteForm.building === "" || b.building === deleteForm.building) &&
-    (deleteForm.floor === "" || b.floor === deleteForm.floor) &&
-    (deleteForm.room === "" || b.room === deleteForm.room) &&
+    (deleteForm.floor === "" || String(b.floor) === String(deleteForm.floor)) &&
+    (deleteForm.room === "" || String(b.room) === String(deleteForm.room)) &&
     (bedSearch === "" || 
       b.bedNumber.toString().includes(bedSearch) ||
       generateLocationCode(b.building, b.floor, b.room, b.bedNumber).includes(bedSearch))
   );
 
   // Helper function to generate 6-digit location code
+
+
+  // Uses sequential building position (1st, 2nd, 3rd) not building name parsing
   const generateLocationCode = (building, floor, room, bed) => {
-    // Convert Building (Building-A=1, Building-B=2, etc.)
-    let buildingNum = '1';
-    if (building) {
-      const hyphenMatch = building.match(/-([A-Z])/i);
-      if (hyphenMatch) {
-        buildingNum = String(hyphenMatch[1].toUpperCase().charCodeAt(0) - 64); // A=1, B=2
-      }
-    }
+    // Get sequential building number from map
+    const buildingNum = (buildingSequentialMap[building] || '1').toString().slice(-1);
     
     // Floor number
-    const floorNum = String(floor).padStart(1, '0');
+    const floorNum = String(floor).replace(/\D/g, '').slice(-1);
     
     // Room and bed numbers
-    const roomNum = String(room).replace(/\D/g, '').padStart(2, '0') || '00';
-    const bedNum = String(bed).replace(/\D/g, '').padStart(2, '0') || '00';
+    const roomNum = String(room).replace(/\D/g, '').padStart(2, '0').slice(-2) || '00';
+    const bedNum = String(bed).replace(/\D/g, '').padStart(2, '0').slice(-2) || '00';
     
     // Combine: Building(1) + Floor(1) + Room(2) + Bed(2) = 6 digits
     return `${buildingNum}${floorNum}${roomNum}${bedNum}`;
@@ -89,17 +100,18 @@ function CampPage({ onNavigate }) {
       return null;
     }
     
-    const buildingNum = code[0];
+    const buildingNum = parseInt(code[0]);
     const floorNum = code[1];
     const roomNum = code.substring(2, 4);
     const bedNum = code.substring(4, 6);
     
-    // Convert building number to letter (1=A, 2=B, etc.)
-    const buildingLetter = String.fromCharCode(64 + parseInt(buildingNum));
-    const buildingName = `Building-${buildingLetter}`;
+    // Find building name by sequential position
+    const buildingName = Object.keys(buildingSequentialMap).find(
+      name => buildingSequentialMap[name] === buildingNum
+    );
     
     return {
-      building: buildingName,
+      building: buildingName || `Building #${buildingNum}`,
       floor: parseInt(floorNum),
       room: parseInt(roomNum),
       bed: parseInt(bedNum),
@@ -127,18 +139,72 @@ function CampPage({ onNavigate }) {
     ? beds.filter(b => generateLocationCode(b.building, b.floor, b.room, b.bedNumber).includes(bedCodeSearch))
     : beds;
 
+  const roomFloorsForSelectedBuilding = floors
+    .filter((f) => f.building === roomForm.building)
+    .sort((a, b) => Number(a.floorNumber) - Number(b.floorNumber));
+
   // Fetch all data on load
   useEffect(() => {
     fetchAllData();
   }, []);
 
+  // Fetch room options from room table for Add Bed form
+  useEffect(() => {
+    const loadBedRooms = async () => {
+      if (!bedForm.building || !bedForm.floor) {
+        setBedRooms([]);
+        return;
+      }
+
+      try {
+        const response = await api.get("/camps/rooms", {
+          params: {
+            building: bedForm.building,
+            floor: bedForm.floor
+          }
+        });
+        setBedRooms(response.data || []);
+      } catch (error) {
+        console.error("Error fetching rooms for bed form:", error);
+        setBedRooms([]);
+      }
+    };
+
+    loadBedRooms();
+  }, [bedForm.building, bedForm.floor]);
+
+  // Fetch room options floor-wise for delete flows
+  useEffect(() => {
+    const loadFloorRooms = async () => {
+      if (!deleteForm.building || !deleteForm.floor) {
+        setFilteredFloorRooms([]);
+        return;
+      }
+
+      try {
+        const response = await api.get("/camps/rooms", {
+          params: {
+            building: deleteForm.building,
+            floor: deleteForm.floor
+          }
+        });
+        setFilteredFloorRooms(response.data || []);
+      } catch (error) {
+        console.error("Error fetching floor-wise rooms:", error);
+        setFilteredFloorRooms([]);
+      }
+    };
+
+    loadFloorRooms();
+  }, [deleteForm.building, deleteForm.floor]);
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const buildingsRes = await api.get("/blocks/buildings");
-      const floorsRes = await api.get("/blocks/floors");
-      const roomsRes = await api.get("/blocks/rooms");
-      const bedsRes = await api.get("/blocks/beds");
+      const buildingsRes = await api.get("/camps/buildings");
+      const floorsRes = await api.get("/camps/floors");
+      const roomsRes = await api.get("/camps/rooms");
+      const bedsRes = await api.get("/camps/beds");
       
       console.log("Fetched rooms data:", roomsRes.data);
       
@@ -151,7 +217,7 @@ function CampPage({ onNavigate }) {
       const floorsData = {};
       for (const building of buildingsRes.data) {
         try {
-          const floorsRes = await api.get(`/blocks/floors/${building.buildingName}`);
+          const floorsRes = await api.get(`/camps/floors/${building.buildingName}`);
           floorsData[building.buildingName] = floorsRes.data;
         } catch (err) {
           console.error(`Error fetching floors for ${building.buildingName}:`, err);
@@ -170,35 +236,38 @@ function CampPage({ onNavigate }) {
   // Add Building
   const handleAddBuilding = async (e) => {
     e.preventDefault();
-    if (!buildingForm.buildingName.trim()) {
+    if (!buildingForm.buildingName || buildingForm.buildingName.trim() === "") {
       alert("Please enter building name");
       return;
     }
-    if (!buildingForm.floors || buildingForm.floors < 1) {
-      alert("Please enter number of floors");
+    const numFloors = parseInt(buildingForm.floors);
+    if (isNaN(numFloors) || numFloors < 1) {
+      alert("Number of floors must be a positive number.");
       return;
     }
+
     try {
-      await api.post("/blocks/buildings", buildingForm);
+      await api.post("/camps/buildings", buildingForm);
       alert("Building added successfully!");
-      setBuildingForm({ buildingName: "", buildingCode: "", floors: "" });
+      
       fetchAllData();
     } catch (error) {
-      alert("Error adding building: " + error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      alert("Error adding building: " + errorMessage);
     }
   };
 
   // Add Room
   const handleAddRoom = async (e) => {
     e.preventDefault();
-    if (!roomForm.roomNumber || !roomForm.building || !roomForm.floor) {
+    if (!roomForm.roomNumber || !roomForm.building || !roomForm.floor || !roomForm.floorId) {
       alert("Please fill all fields");
       return;
     }
     try {
-      await api.post("/blocks/rooms", roomForm);
+      await api.post("/camps/rooms", roomForm);
       alert("Room added successfully!");
-      setRoomForm({ roomNumber: "", building: "", floor: "", capacity: "" });
+      setRoomForm({ roomNumber: "", building: "", floor: "", floorId: "", capacity: "" });
       fetchAllData();
     } catch (error) {
       alert("Error adding room: " + error.message);
@@ -219,7 +288,7 @@ function CampPage({ onNavigate }) {
     }
     try {
       console.log("Sending bed data:", bedForm);
-      const response = await api.post("/blocks/beds", bedForm);
+      const response = await api.post("/camps/beds", bedForm);
       alert(response.data.message || "Beds added successfully!");
       setBedForm({ bedNumber: "", room: "", building: "", floor: "" });
       setBedCodeInput("");
@@ -235,13 +304,13 @@ function CampPage({ onNavigate }) {
   const handleDeleteBuilding = async (id) => {
     if (window.confirm("Are you sure you want to delete this building?")) {
       try {
-        await api.delete(`/blocks/buildings/${id}`);
+        await api.delete(`/camps/buildings/${id}`);
         alert("Building deleted successfully!");
         setViewMode("add");
         setBuildingSearch("");
         fetchAllData();
       } catch (error) {
-        alert("Error deleting building: " + error.message);
+        alert("Error deleting building: " + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -254,7 +323,7 @@ function CampPage({ onNavigate }) {
       return;
     }
     try {
-      await api.post("/blocks/floors", floorForm);
+      await api.post("/camps/floors", floorForm);
       alert("Floor added successfully!");
       setFloorForm({ building: "", floorNumber: "" });
       fetchAllData();
@@ -267,14 +336,14 @@ function CampPage({ onNavigate }) {
   const handleDeleteFloor = async (id) => {
     if (window.confirm("Are you sure you want to delete this floor?")) {
       try {
-        await api.delete(`/blocks/floors/${id}`);
+        await api.delete(`/camps/floors/${id}`);
         alert("Floor deleted successfully!");
         setViewMode("add");
         setFloorSearch("");
         setDeleteForm({ building: "", floor: "", room: "", bed: "" });
         fetchAllData();
       } catch (error) {
-        alert("Error deleting floor: " + error.message);
+        alert("Error deleting floor: " + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -283,14 +352,14 @@ function CampPage({ onNavigate }) {
   const handleDeleteRoom = async (id) => {
     if (window.confirm("Are you sure you want to delete this room?")) {
       try {
-        await api.delete(`/blocks/rooms/${id}`);
+        await api.delete(`/camps/rooms/${id}`);
         alert("Room deleted successfully!");
         setViewMode("add");
         setRoomSearch("");
         setDeleteForm({ building: "", floor: "", room: "", bed: "" });
         fetchAllData();
       } catch (error) {
-        alert("Error deleting room: " + error.message);
+        alert("Error deleting room: " + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -299,14 +368,14 @@ function CampPage({ onNavigate }) {
   const handleDeleteBed = async (id) => {
     if (window.confirm("Are you sure you want to delete this bed?")) {
       try {
-        await api.delete(`/blocks/beds/${id}`);
+        await api.delete(`/camps/beds/${id}`);
         alert("Bed deleted successfully!");
         setViewMode("add");
         setBedSearch("");
         setDeleteForm({ building: "", floor: "", room: "", bed: "" });
         fetchAllData();
       } catch (error) {
-        alert("Error deleting bed: " + error.message);
+        alert("Error deleting bed: " + (error.response?.data?.error || error.message));
       }
     }
   };
@@ -751,7 +820,7 @@ function CampPage({ onNavigate }) {
                       <label>Building</label>
                       <select 
                         value={roomForm.building}
-                        onChange={(e) => setRoomForm({ ...roomForm, building: e.target.value, floor: "" })}
+                        onChange={(e) => setRoomForm({ ...roomForm, building: e.target.value, floor: "", floorId: "" })}
                       >
                         <option value="">Select Building</option>
                         {buildings.map((b) => (
@@ -762,14 +831,25 @@ function CampPage({ onNavigate }) {
                     <div className="form-group">
                       <label>Floor</label>
                       <select 
-                        value={roomForm.floor}
-                        onChange={(e) => setRoomForm({ ...roomForm, floor: e.target.value })}
+                        value={roomForm.floorId}
+                        onChange={(e) => {
+                          const selectedFloor = roomFloorsForSelectedBuilding.find(
+                            (f) => String(f.id) === e.target.value
+                          );
+                          setRoomForm({
+                            ...roomForm,
+                            floorId: e.target.value,
+                            floor: selectedFloor ? String(selectedFloor.floorNumber) : ""
+                          });
+                        }}
                         disabled={!roomForm.building}
                       >
                         <option value="">Select Floor</option>
-                        {roomForm.building && buildingFloors[roomForm.building]?.map(floorNum => (
-                          <option key={floorNum} value={floorNum}>
-                            {floorNum === 1 ? 'Ground Floor (1)' : `Floor ${floorNum}`}
+                        {roomFloorsForSelectedBuilding.map((floorObj) => (
+                          <option key={floorObj.id} value={floorObj.id}>
+                            {Number(floorObj.floorNumber) === 1
+                              ? `Ground Floor (1)`
+                              : `Floor ${floorObj.floorNumber}`}
                           </option>
                         ))}
                       </select>
@@ -883,19 +963,14 @@ function CampPage({ onNavigate }) {
                         onChange={(e) => setDeleteForm({ ...deleteForm, room: e.target.value })}
                       >
                         <option value="">Select Room</option>
-                        {(() => {
-                          const filtered = rooms.filter(r => {
-                            console.log('Room:', r.roomNumber, 'Building:', r.building, 'Floor:', r.floor);
-                            console.log('Selected Building:', deleteForm.building, 'Selected Floor:', deleteForm.floor);
-                            return r.building === deleteForm.building && String(r.floor) === String(deleteForm.floor);
-                          });
-                          console.log('Filtered rooms:', filtered);
-                          return filtered.map((r) => (
+                        {filteredFloorRooms
+                          .slice()
+                          .sort((a, b) => parseInt(a.roomNumber) - parseInt(b.roomNumber))
+                          .map((r, index) => (
                             <option key={r.id} value={r.roomNumber}>
-                              Room {r.roomNumber} {r.capacity ? `(Capacity: ${r.capacity})` : ''}
+                              Room {index + 1} {r.capacity ? `(Capacity: ${r.capacity})` : ""}
                             </option>
-                          ));
-                        })()}
+                          ))}
                       </select>
                     </div>
                   )}
@@ -909,7 +984,7 @@ function CampPage({ onNavigate }) {
                           {filteredRooms.map((r) => (
                             <div key={r.id} className="result-item">
                               <div className="result-info">
-                                <strong>Room {r.roomNumber}</strong>
+                                <strong>Room {parseInt(r.roomNumber)}</strong>
                                 <span className="detail">Floor {r.floor}, {r.building}</span>
                                 {r.capacity && <span className="detail">Capacity: {r.capacity}</span>}
                               </div>
@@ -984,7 +1059,7 @@ function CampPage({ onNavigate }) {
                         <label>Building</label>
                         <select 
                           value={bedForm.building}
-                          onChange={(e) => setBedForm({ ...bedForm, building: e.target.value, floor: "" })}
+                          onChange={(e) => setBedForm({ ...bedForm, building: e.target.value, floor: "", room: "" })}
                         >
                           <option value="">Select Building</option>
                           {buildings.map((b) => (
@@ -996,7 +1071,7 @@ function CampPage({ onNavigate }) {
                         <label>Floor</label>
                         <select 
                           value={bedForm.floor}
-                          onChange={(e) => setBedForm({ ...bedForm, floor: e.target.value })}
+                          onChange={(e) => setBedForm({ ...bedForm, floor: e.target.value, room: "" })}
                           disabled={!bedForm.building}
                         >
                           <option value="">Select Floor</option>
@@ -1015,13 +1090,13 @@ function CampPage({ onNavigate }) {
                           disabled={!bedForm.floor}
                         >
                           <option value="">Select Room</option>
-                          {bedForm.floor && rooms
-                            .filter(r => r.building === bedForm.building && String(r.floor) === String(bedForm.floor))
-                            .map(r => (
-                              <option key={r.id} value={r.roomNumber}>
-                                Room {r.roomNumber}
-                              </option>
-                            ))
+                          {bedRooms
+                          .sort((a, b) => parseInt(a.roomNumber) - parseInt(b.roomNumber))
+                          .map((r, index) => (
+                            <option key={r.id} value={r.roomNumber}>
+                              Room {index + 1}
+                            </option>
+                          ))
                           }
                         </select>
                       </div>
@@ -1145,10 +1220,13 @@ function CampPage({ onNavigate }) {
                         onChange={(e) => setDeleteForm({ ...deleteForm, room: e.target.value, bed: "" })}
                       >
                         <option value="">Select Room</option>
-                        {rooms
-                          .filter(r => r.building === deleteForm.building && r.floor === deleteForm.floor)
-                          .map((r) => (
-                            <option key={r.id} value={r.roomNumber}>Room {r.roomNumber}</option>
+                        {filteredFloorRooms
+                          .slice()
+                          .sort((a, b) => parseInt(a.roomNumber) - parseInt(b.roomNumber))
+                          .map((r, index) => (
+                            <option key={r.id} value={r.roomNumber}>
+                              Room {index + 1}
+                            </option>
                           ))}
                       </select>
                     </div>

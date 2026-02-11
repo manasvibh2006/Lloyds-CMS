@@ -5,20 +5,50 @@ const router = express.Router();
 // Get bed vacancies by building
 router.get("/vacancies", async (req, res) => {
   try {
-    const query = `
-      SELECT 
-        b.name as building_name,
-        COUNT(DISTINCT bed.id) as total_beds,
-        COUNT(DISTINCT CASE WHEN bed.status = 'AVAILABLE' AND bed.id NOT IN (
-          SELECT DISTINCT bed_id FROM bookings WHERE status IN ('PENDING', 'ACTIVE')
-        ) THEN bed.id END) as vacant_beds
-      FROM buildings b
-      LEFT JOIN floors f ON b.id = f.building_id
-      LEFT JOIN rooms r ON f.id = r.floor_id
-      LEFT JOIN beds bed ON r.id = bed.room_id
-      GROUP BY b.id, b.name
-      ORDER BY b.name
-    `;
+    const [bookingTableRows] = await db.query(
+      `SELECT 1
+       FROM information_schema.tables
+       WHERE table_schema = DATABASE() AND table_name = 'bookings'
+       LIMIT 1`
+    );
+
+    const hasBookingsTable = bookingTableRows.length > 0;
+
+    const query = hasBookingsTable
+      ? `
+        SELECT
+          b.name AS building_name,
+          COUNT(DISTINCT bed.id) AS total_beds,
+          COUNT(
+            DISTINCT CASE
+              WHEN bed.status = 'AVAILABLE'
+                AND bed.id NOT IN (
+                  SELECT DISTINCT bed_id
+                  FROM bookings
+                  WHERE status IN ('PENDING', 'ACTIVE')
+                )
+              THEN bed.id
+            END
+          ) AS vacant_beds
+        FROM buildings b
+        LEFT JOIN floors f ON b.id = f.building_id
+        LEFT JOIN rooms r ON f.id = r.floor_id
+        LEFT JOIN beds bed ON r.id = bed.room_id
+        GROUP BY b.id, b.name
+        ORDER BY b.name
+      `
+      : `
+        SELECT
+          b.name AS building_name,
+          COUNT(DISTINCT bed.id) AS total_beds,
+          COUNT(DISTINCT CASE WHEN bed.status = 'AVAILABLE' THEN bed.id END) AS vacant_beds
+        FROM buildings b
+        LEFT JOIN floors f ON b.id = f.building_id
+        LEFT JOIN rooms r ON f.id = r.floor_id
+        LEFT JOIN beds bed ON r.id = bed.room_id
+        GROUP BY b.id, b.name
+        ORDER BY b.name
+      `;
 
     const [results] = await db.query(query);
     const vacancyData = results || [];

@@ -3,41 +3,80 @@ const db = require("../db");
 
 const router = express.Router();
 
+/**
+ * GET /beds?roomId=...
+ * Fetch all beds for a given room
+ */
 router.get("/", async (req, res) => {
   const { roomId } = req.query;
-  console.log("🛏️ Fetching beds for room ID:", roomId);
-  
+
   if (!roomId) {
-    return res.status(400).json({ error: "Room ID is required" });
+    return res.status(400).json({ error: "roomId is required as query param" });
   }
-  
+
+  console.log("📡 Fetching beds for room:", roomId);
+
   try {
     const [results] = await db.query(
-      "SELECT * FROM beds WHERE room_id = ? ORDER BY bed_number",
+      "SELECT * FROM beds WHERE room_id = ? ORDER BY bed_number ASC",
       [roomId]
     );
-    console.log(`📊Found beds: ${results.length} (Available: ${results.filter(b => b.status === 'AVAILABLE').length}, Booked: ${results.filter(b => b.status === 'BOOKED').length})`);
-    res.json(results);
+
+    // Format bed numbers for UI (01, 02, etc.)
+    const formattedBeds = results.map(bed => ({
+      ...bed,
+      display_bed_number: bed.bed_number.toString().padStart(2, "0")
+    }));
+
+    console.log(`✅ Found ${results.length} beds`);
+    res.json(formattedBeds);
+
   } catch (err) {
-    console.error("❌ Beds error:", err);
+    console.error("❌ Beds GET error:", err);
     return res.status(500).json({ error: err.message });
   }
 });
 
-// Create bed
+/**
+ * POST /beds
+ * Create a new bed — BACKEND generates bed number
+ * Body: { roomId }
+ */
 router.post("/", async (req, res) => {
-  const { roomId, bedNumber, status } = req.body;
-  if (!roomId || bedNumber == null) {
-    return res.status(400).json({ error: "roomId and bedNumber are required" });
+  const { roomId } = req.body;
+
+  if (!roomId) {
+    return res.status(400).json({ error: "roomId is required" });
   }
 
   try {
-    const [result] = await db.query(
-      "INSERT INTO beds (room_id, bed_number, status) VALUES (?, ?, ?)",
-      [roomId, bedNumber, status || "AVAILABLE"]
+    // Get last bed number in this room
+    const [rows] = await db.query(
+      "SELECT MAX(bed_number) AS maxBed FROM beds WHERE room_id = ?",
+      [roomId]
     );
-    res.status(201).json({ id: result.insertId, room_id: roomId, bed_number: bedNumber, status: status || "AVAILABLE" });
+
+    // Generate next bed number (start from 1 if none exist)
+    const newBedNumber = rows[0].maxBed
+      ? rows[0].maxBed + 1
+      : 1;
+
+    // Insert new bed
+    const [result] = await db.query(
+      "INSERT INTO beds (room_id, bed_number, status) VALUES (?, ?, 'AVAILABLE')",
+      [roomId, newBedNumber]
+    );
+
+    res.status(201).json({
+      id: result.insertId,
+      room_id: roomId,
+      bed_number: newBedNumber,               // stored as integer
+      display_bed_number: newBedNumber.toString().padStart(2, "0"),
+      status: "AVAILABLE"
+    });
+
   } catch (err) {
+    console.error("❌ Bed creation error:", err);
     return res.status(500).json({ error: err.message });
   }
 });

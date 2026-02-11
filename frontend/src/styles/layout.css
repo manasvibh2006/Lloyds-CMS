@@ -1,0 +1,20 @@
+/* Dashboard Layout specific styles */
+.dashboard-layout-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Occupy full height of #root */
+  overflow: hidden; /* Prevent this wrapper from scrolling, its children will manage */
+}
+
+.app-body {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1; /* Take all available vertical space after the header */
+  overflow: hidden; /* Prevent app-body from scrolling, its children will manage */
+}
+
+.main-content-area {
+  flex-grow: 1; /* Take all remaining horizontal space */
+  overflow-y: auto; /* This is where the main content scrolling happens */
+  padding: 20px; /* Add some padding to the content */ 
+}

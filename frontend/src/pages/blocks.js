@@ -44,6 +44,21 @@ router.get("/floors/:buildingName", async (req, res) => {
 router.post("/buildings", async (req, res) => {
   try {
     const { buildingName, buildingCode, floors } = req.body;
+
+    // Input validation
+    if (!buildingName || buildingName.trim() === "") {
+      return res.status(400).json({ error: "Building name cannot be empty." });
+    }
+    const numFloorsInput = parseInt(floors);
+    if (isNaN(numFloorsInput) || numFloorsInput < 1) {
+      return res.status(400).json({ error: "Number of floors must be a positive number." });
+    }
+
+    // Check if building with the same name already exists
+    const [existingBuildings] = await db.query("SELECT id FROM buildings WHERE name = ?", [buildingName]);
+    if (existingBuildings.length > 0) {
+      return res.status(409).json({ error: "Building with this name already exists." });
+    }
     
     // Insert the building with custom name
     const [result] = await db.query(
@@ -95,6 +110,19 @@ router.delete("/buildings/:id", async (req, res) => {
     
     // Finally delete the building
     await db.query("DELETE FROM buildings WHERE id = ?", [id]);
+    
+    // Reset AUTO_INCREMENT for all tables to maintain sequential IDs
+    const [maxBuilding] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM buildings");
+    await db.query(`ALTER TABLE buildings AUTO_INCREMENT = ${maxBuilding[0].maxId + 1}`);
+    
+    const [maxFloor] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM floors");
+    await db.query(`ALTER TABLE floors AUTO_INCREMENT = ${maxFloor[0].maxId + 1}`);
+    
+    const [maxRoom] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM rooms");
+    await db.query(`ALTER TABLE rooms AUTO_INCREMENT = ${maxRoom[0].maxId + 1}`);
+    
+    const [maxBed] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM beds");
+    await db.query(`ALTER TABLE beds AUTO_INCREMENT = ${maxBed[0].maxId + 1}`);
     
     res.json({ success: true, message: "Building deleted" });
   } catch (err) {
@@ -152,12 +180,21 @@ router.post("/rooms", async (req, res) => {
       [floors[0].id]
     );
     
+    console.log(`📊 Max room for floor ${floor}: ${maxRoom[0].maxRoom}`);
     const startRoom = maxRoom[0].maxRoom + 1;
+    console.log(`🏁 Starting room number: ${startRoom}`);
     const insertedIds = [];
     
-    // Add multiple rooms
+    // Add multiple rooms (store as integers: 1, 2, 3, ..., 99)
     for (let i = 0; i < numRoomsToAdd; i++) {
-      const roomNum = String(startRoom + i);
+      const roomNum = startRoom + i;
+      
+      // Validate room number range (1-99)
+      if (roomNum > 99) {
+        throw new Error(`Room number ${roomNum} exceeds maximum of 99`);
+      }
+      
+      console.log(`➕ Creating room: ${roomNum}`);
       const [result] = await db.query(
         "INSERT INTO rooms (room_number, floor_id) VALUES (?, ?)",
         [roomNum, floors[0].id]
@@ -180,7 +217,20 @@ router.post("/rooms", async (req, res) => {
 router.delete("/rooms/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Delete all beds in this room first
+    await db.query("DELETE FROM beds WHERE room_id = ?", [id]);
+    
+    // Delete the room
     await db.query("DELETE FROM rooms WHERE id = ?", [id]);
+    
+    // Reset AUTO_INCREMENT for rooms and beds to maintain sequential IDs
+    const [maxRoom] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM rooms");
+    await db.query(`ALTER TABLE rooms AUTO_INCREMENT = ${maxRoom[0].maxId + 1}`);
+    
+    const [maxBed] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM beds");
+    await db.query(`ALTER TABLE beds AUTO_INCREMENT = ${maxBed[0].maxId + 1}`);
+    
     res.json({ success: true, message: "Room deleted" });
   } catch (err) {
     console.error("Error deleting room:", err);
@@ -271,6 +321,11 @@ router.delete("/beds/:id", async (req, res) => {
   try {
     const { id } = req.params;
     await db.query("DELETE FROM beds WHERE id = ?", [id]);
+    
+    // Reset AUTO_INCREMENT for beds to maintain sequential IDs
+    const [maxBed] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM beds");
+    await db.query(`ALTER TABLE beds AUTO_INCREMENT = ${maxBed[0].maxId + 1}`);
+    
     res.json({ success: true, message: "Bed deleted" });
   } catch (err) {
     console.error("Error deleting bed:", err);
@@ -353,7 +408,31 @@ router.post("/floors", async (req, res) => {
 router.delete("/floors/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    
+    // Get all rooms in this floor
+    const [rooms] = await db.query("SELECT id FROM rooms WHERE floor_id = ?", [id]);
+    
+    // Delete all beds in these rooms
+    for (const room of rooms) {
+      await db.query("DELETE FROM beds WHERE room_id = ?", [room.id]);
+    }
+    
+    // Delete all rooms in this floor
+    await db.query("DELETE FROM rooms WHERE floor_id = ?", [id]);
+    
+    // Delete the floor
     await db.query("DELETE FROM floors WHERE id = ?", [id]);
+    
+    // Reset AUTO_INCREMENT for floors, rooms, and beds to maintain sequential IDs
+    const [maxFloor] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM floors");
+    await db.query(`ALTER TABLE floors AUTO_INCREMENT = ${maxFloor[0].maxId + 1}`);
+    
+    const [maxRoom] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM rooms");
+    await db.query(`ALTER TABLE rooms AUTO_INCREMENT = ${maxRoom[0].maxId + 1}`);
+    
+    const [maxBed] = await db.query("SELECT COALESCE(MAX(id), 0) as maxId FROM beds");
+    await db.query(`ALTER TABLE beds AUTO_INCREMENT = ${maxBed[0].maxId + 1}`);
+    
     res.json({ success: true, message: "Floor deleted" });
   } catch (err) {
     console.error("Error deleting floor:", err);

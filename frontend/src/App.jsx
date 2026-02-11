@@ -7,6 +7,8 @@ import UserInputPage from "./pages/UserInputPage";
 import AllocationList from "./components/AllocationList";
 import ReportPage from "./pages/ReportPage";
 import CampPage from "./pages/CampPage";
+import SettingsPage from "./pages/SettingsPage";
+import api from "./services/api";
 
 
 
@@ -22,12 +24,14 @@ function App() {
   const [bookingData, setBookingData] = useState(null);
 
   // Fetch allocations
-  const fetchAllocations = () => {
-    if (currentUser) {
-      fetch('http://localhost:5000/api/allocations')
-        .then(res => res.json())
-        .then(data => setAllocations(data))
-        .catch(err => console.error('Allocation fetch error:', err));
+  const fetchAllocations = async () => {
+    if (!currentUser) return;
+
+    try {
+      const response = await api.get("/allocations");
+      setAllocations(response.data);
+    } catch (err) {
+      console.error("Allocation fetch error:", err);
     }
   };
 
@@ -36,9 +40,11 @@ function App() {
   }, [currentUser, activePage]);
 
   const handleDeleteAllocation = (deletedId) => {
-    // Optimistically update the UI
-    setAllocations(prev => prev.filter(alloc => alloc.id !== deletedId));
-    // Refetch to ensure sync
+    // If deletedId is provided, optimistically update the UI
+    if (deletedId) {
+      setAllocations(prev => prev.filter(alloc => alloc.id !== deletedId));
+    }
+    // Always refetch to ensure sync
     fetchAllocations();
   };
 
@@ -58,6 +64,7 @@ function App() {
         }
       }}
       onLogout={() => setCurrentUser(null)}
+      currentUser={currentUser}
     >
       {activePage === "dashboard" && (
         <DashboardPage onNavigate={(page) => setActivePage(page)} />
@@ -80,20 +87,17 @@ function App() {
             // UserInputPage handles the API call, just move to allocation view
             setActivePage("allocation");
             // Refresh allocations
-            fetch('http://localhost:5000/api/allocations')
-              .then(res => res.json())
-              .then(data => setAllocations(data))
-              .catch(err => console.error('Allocation fetch error:', err));
+            fetchAllocations();
           }}
         />
       )}
 
       {activePage === "allocation" && (
-        <AllocationList allocations={allocations} onDelete={handleDeleteAllocation} />
+        <AllocationList allocations={allocations} onRefresh={fetchAllocations} onDelete={handleDeleteAllocation} />
       )}
 
       {activePage === "allocations" && (
-        <AllocationList allocations={allocations} onDelete={handleDeleteAllocation} />
+        <AllocationList allocations={allocations} onRefresh={fetchAllocations} onDelete={handleDeleteAllocation} />
       )}
 
       {activePage === "reports" && (
@@ -102,6 +106,10 @@ function App() {
 
       {activePage === "camps" && (
         <CampPage onNavigate={(page) => setActivePage(page)} />
+      )}
+
+      {activePage === "settings" && (
+        <SettingsPage />
       )}
     </DashboardLayout>
   );

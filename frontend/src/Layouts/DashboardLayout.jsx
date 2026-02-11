@@ -2,14 +2,14 @@ import { useState } from "react";
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 
-function DashboardLayout({ children, onLogout, setActivePage, activePage}) {
+function DashboardLayout({ children, onLogout, setActivePage, activePage, currentUser}) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column" }}>
       
       {/* HEADER WITH LOGO */}
-      <Header onLogout={onLogout} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
+      <Header onLogout={onLogout} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} currentUser={currentUser} />
 
       {/* BODY */}
       <div className="app-body">

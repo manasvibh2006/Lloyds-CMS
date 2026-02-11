@@ -104,7 +104,8 @@ function BookingForm({
           ) : rooms.length === 0 ? (
             <p style={{color: '#666', textAlign: 'center', padding: '20px'}}>No rooms available</p>
           ) : (
-            rooms.map(r => (
+            rooms.sort((a, b) => parseInt(a.room_number) - parseInt(b.room_number))
+                 .map((r, index) => (
               <button
                 key={r.id}
                 type="button"
@@ -115,7 +116,7 @@ function BookingForm({
                   onRoomChange(r.id);
                 }}
               >
-                Room {parseInt(r.room_number)}
+                Room {index + 1}
               </button>
             ))
           )}

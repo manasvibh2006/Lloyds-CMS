@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../services/api";
 import "../styles/login.css";
 
 function LoginPage({ onLogin }) {
@@ -20,7 +20,7 @@ function LoginPage({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/login", {
+      const response = await api.post("/auth/login", {
         username,
         password,
         role
@@ -58,11 +58,11 @@ function LoginPage({ onLogin }) {
 
         {/* Form Fields */}
         <div className="login-form-group">
-          <label className="login-label">Username</label>
+          <label className="login-label">Username/Email</label>
           <input
             type="text"
             className="login-input"
-            placeholder="Enter your username"
+            placeholder="Enter your username or email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -83,14 +83,15 @@ function LoginPage({ onLogin }) {
 
         <div className="login-form-group">
           <label className="login-label">Role</label>
-          <input
-            type="text"
-            className="login-input"
-            placeholder="Enter your role (e.g., admin, manager, staff)"
+          <select
+            className="login-select"
             value={role}
             onChange={(e) => setRole(e.target.value)}
-            onKeyPress={handleKeyPress}
-          />
+          >
+            <option value="">Select your role</option>
+             <option value="super_admin">Super Admin</option>
+            <option value="camp_admin">Camp Admin</option>
+           </select>
         </div>
 
         {/* Error Message */}

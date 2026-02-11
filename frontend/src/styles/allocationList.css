@@ -1,0 +1,162 @@
+.allocation-action-btn {
+  background: #f8fafc;
+  border: 1px solid #d1d5db;
+  color: #1f2937;
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.allocation-action-btn:hover {
+  background: #e5e7eb;
+}
+
+.allocation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.allocation-modal {
+  width: min(760px, 100%);
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  padding: 22px;
+}
+
+.allocation-modal h3 {
+  margin: 0 0 16px 0;
+  color: #111827;
+}
+
+.allocation-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.allocation-form-grid label,
+.allocation-remarks-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.allocation-form-grid input,
+.allocation-remarks-field textarea {
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.allocation-form-grid input:focus,
+.allocation-remarks-field textarea:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.allocation-remarks-field {
+  margin-top: 12px;
+}
+
+.allocation-modal-divider {
+  border-top: 1px solid #e5e7eb;
+  margin: 14px 0;
+}
+
+.allocation-modal-actions {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.allocation-btn {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.allocation-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.allocation-btn-secondary {
+  background: #fff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.allocation-btn-secondary:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.allocation-btn-save {
+  background: #2563eb;
+  color: #fff;
+}
+
+.allocation-btn-save:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.allocation-btn-checkout {
+  background: #f59e0b;
+  color: #111827;
+}
+
+.allocation-btn-checkout:hover:not(:disabled) {
+  background: #d97706;
+  color: #fff;
+}
+
+.allocation-btn-blacklist {
+  background: #dc2626;
+  color: #fff;
+}
+
+.allocation-btn-blacklist:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+@media (max-width: 768px) {
+  .allocation-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .allocation-modal-actions {
+    justify-content: stretch;
+  }
+
+  .allocation-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -81,3 +81,16 @@ CREATE TABLE IF NOT EXISTS allocations (
   status VARCHAR(50) DEFAULT 'BOOKED',
   FOREIGN KEY (bed_id) REFERENCES beds(id)
 );
+
+-- Create blacklist table
+CREATE TABLE IF NOT EXISTS blacklist (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  user_id VARCHAR(255) NOT NULL,
+  user_name VARCHAR(255) NOT NULL,
+  company VARCHAR(255),
+  reason TEXT NOT NULL,
+  blacklisted_by VARCHAR(255),
+  blacklisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  is_active BOOLEAN DEFAULT TRUE,
+  UNIQUE KEY unique_active_user (user_id, is_active)
+);
