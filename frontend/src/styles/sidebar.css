@@ -1,7 +1,7 @@
 .sidebar {
   background: linear-gradient(180deg, #2C3E50 0%, #1A2332 100%);
   color: white;
-  height: 100vh;
+  height: 100%;
   padding: 16px 16px 60px 16px;
   box-shadow: 2px 0 8px rgba(0,0,0,0.2);
   flex-shrink: 0;
@@ -50,7 +50,7 @@
   padding: 0;
   margin: 0;
   flex: 1;
-  overflow-y: auto;
+  overflow-y: hidden;
   overflow-x: hidden;
   min-height: 0;
 }

@@ -330,6 +330,19 @@
   box-shadow: none;
 }
 
+.selection-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.selection-card-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
 .selection-card:hover:not(:disabled) {
   border-color: #C41C3B;
   background: #FFFFFF;
@@ -347,6 +360,10 @@
   border-color: #A01629 !important;
   font-weight: 600 !important;
   box-shadow: 0 2px 8px rgba(196, 28, 59, 0.25) !important;
+}
+
+.card-selected .selection-card-meta {
+  color: #f8d7dd;
 }
 /* ========== HELPER TEXT STYLES ========== */
 .selection-grid p {

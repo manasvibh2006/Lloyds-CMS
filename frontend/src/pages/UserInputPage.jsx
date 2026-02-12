@@ -11,6 +11,7 @@ function UserInputPage({ bookingData, onSuccess }) {
   const [contractorName, setContractorName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [rent, setRent] = useState("");
   const [remarks, setRemarks] = useState("");
   const [loading, setLoading] = useState(false);
   const [isBlacklisted, setIsBlacklisted] = useState(false);
@@ -115,6 +116,7 @@ function UserInputPage({ bookingData, onSuccess }) {
         bedId: bookingData.bedId,
         startDate,
         endDate,
+        rent: rent ? Number(rent) : 0,
         remarks
       });
       alert("Allocation successful");
@@ -163,6 +165,17 @@ function UserInputPage({ bookingData, onSuccess }) {
 
         <FormRow label="End date" required>
           <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </FormRow>
+
+        <FormRow label="Rent (Optional)">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={rent}
+            onChange={(e) => setRent(e.target.value)}
+            placeholder="Enter rent amount"
+          />
         </FormRow>
 
         <FormRow label="Remarks">

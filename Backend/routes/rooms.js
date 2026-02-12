@@ -18,7 +18,19 @@ router.get("/", async (req, res) => {
 
   try {
     const [results] = await db.query(
-      "SELECT * FROM rooms WHERE floor_id = ? ORDER BY room_number ASC",
+      `SELECT
+        r.*,
+        COUNT(b.id) AS total_beds,
+        COALESCE(SUM(CASE WHEN b.status = 'AVAILABLE' THEN 1 ELSE 0 END), 0) AS vacant_beds,
+        (
+          COUNT(b.id) -
+          COALESCE(SUM(CASE WHEN b.status = 'AVAILABLE' THEN 1 ELSE 0 END), 0)
+        ) AS occupied_beds
+      FROM rooms r
+      LEFT JOIN beds b ON b.room_id = r.id
+      WHERE r.floor_id = ?
+      GROUP BY r.id
+      ORDER BY CAST(r.room_number AS UNSIGNED) ASC, r.room_number ASC`,
       [floorId]
     );
 

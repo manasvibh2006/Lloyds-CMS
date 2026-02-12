@@ -4,6 +4,35 @@ const db = require("../db");
 
 console.log("📂 Loading allocations.js routes...");
 
+// Backward-compatible schema guard for rent support.
+(async () => {
+  try {
+    const [columnRows] = await db.query(
+      `SELECT COUNT(*) AS count
+       FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE()
+         AND TABLE_NAME = 'allocations'
+         AND COLUMN_NAME = 'rent'`
+    );
+
+    if (Number(columnRows[0]?.count || 0) === 0) {
+      await db.query(
+        "ALTER TABLE allocations ADD COLUMN rent DECIMAL(10,2) NULL DEFAULT 0 COMMENT 'Optional rent amount'"
+      );
+    }
+
+    // Backfill first; required before NOT NULL in strict SQL modes.
+    await db.query("UPDATE allocations SET rent = 0 WHERE rent IS NULL");
+
+    // Enforce final shape after data cleanup.
+    await db.query(
+      "ALTER TABLE allocations MODIFY COLUMN rent DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT 'Optional rent amount'"
+    );
+  } catch (err) {
+    console.error("❌ Failed to ensure allocations.rent column:", err.message);
+  }
+})();
+
 /**
  * Generate 6-digit allocation code: BFRRBB
  * B = Sequential building number (1st, 2nd, 3rd by creation order)
@@ -71,8 +100,14 @@ router.get("/", async (req, res) => {
         a.contractor_name AS contractorName,
         a.start_date,
         a.end_date,
+        a.rent,
         a.remarks,
         a.status,
+        CASE
+          WHEN bl.user_id IS NOT NULL THEN 'BLACKLISTED'
+          WHEN a.status = 'RELEASED' THEN 'CHECKED_OUT'
+          ELSE a.status
+        END AS statusDisplay,
         a.allocated_at AS created_at,
         a.bed_id,
         a.allocation_code,
@@ -80,13 +115,17 @@ router.get("/", async (req, res) => {
         r.room_number,
         f.floor_number,
         bld.id AS buildingId,
-        bld.name AS buildingName
+        bld.name AS buildingName,
+        CASE WHEN bl.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS isBlacklisted,
+        bl.reason AS blacklistReason,
+        bl.blacklisted_at AS blacklistedAt
       FROM allocations a
       JOIN users u ON a.user_id = u.user_id
       JOIN beds b ON a.bed_id = b.id
       JOIN rooms r ON b.room_id = r.id
       JOIN floors f ON r.floor_id = f.id
       JOIN buildings bld ON f.building_id = bld.id
+      LEFT JOIN blacklist bl ON bl.user_id = a.user_id AND bl.is_active = TRUE
       ORDER BY a.allocated_at DESC
     `);
 
@@ -113,7 +152,8 @@ router.post("/", async (req, res) => {
     bedId,
     startDate,
     endDate,
-    remarks
+    remarks,
+    rent
   } = req.body;
 
   if (!userId || !bedId) {
@@ -153,8 +193,8 @@ router.post("/", async (req, res) => {
     // Insert allocation (normalized — no user_name/company here)
     const [result] = await db.query(
       `INSERT INTO allocations
-       (user_id, bed_id, contractor_name, remarks, start_date, end_date, status, allocation_code)
-       VALUES (?, ?, ?, ?, ?, ?, 'BOOKED', ?)`,
+       (user_id, bed_id, contractor_name, remarks, start_date, end_date, rent, status, allocation_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'BOOKED', ?)`,
       [
         userId,
         bedId,
@@ -162,6 +202,7 @@ router.post("/", async (req, res) => {
         remarks || null,
         startDate || null,
         endDate || null,
+        rent != null && rent !== "" ? Number(rent) : 0,
         allocationCode
       ]
     );
@@ -197,6 +238,7 @@ router.put("/:id", async (req, res) => {
     contractorName,
     startDate,
     endDate,
+    rent,
     remarks,
     checkout
   } = req.body;
@@ -245,6 +287,7 @@ router.put("/:id", async (req, res) => {
        SET contractor_name = ?,
            start_date = ?,
            end_date = ?,
+           rent = COALESCE(?, rent),
            remarks = ?,
            status = ?,
            released_at = ?
@@ -253,6 +296,7 @@ router.put("/:id", async (req, res) => {
         contractorName && contractorName.trim() ? contractorName.trim() : "N/A",
         startDate || null,
         endDate || null,
+        rent === undefined ? null : (rent != null && rent !== "" ? Number(rent) : 0),
         remarks || null,
         nextStatus,
         shouldCheckout ? new Date() : null,
@@ -295,9 +339,17 @@ router.get("/:id", async (req, res) => {
       `SELECT 
         a.id,
         a.user_id AS userId,
+        u.name AS userName,
+        u.company,
         a.contractor_name AS contractorName,
         a.remarks,
         a.status,
+        a.rent,
+        CASE
+          WHEN bl.user_id IS NOT NULL THEN 'BLACKLISTED'
+          WHEN a.status = 'RELEASED' THEN 'CHECKED_OUT'
+          ELSE a.status
+        END AS statusDisplay,
         a.allocated_at AS created_at,
         a.start_date,
         a.end_date,
@@ -308,12 +360,17 @@ router.get("/:id", async (req, res) => {
         f.floor_number,
         f.id AS floorId,
         bld.id AS buildingId,
-        bld.name AS buildingName
+        bld.name AS buildingName,
+        CASE WHEN bl.user_id IS NOT NULL THEN TRUE ELSE FALSE END AS isBlacklisted,
+        bl.reason AS blacklistReason,
+        bl.blacklisted_at AS blacklistedAt
       FROM allocations a
+      JOIN users u ON a.user_id = u.user_id
       JOIN beds b ON a.bed_id = b.id
       JOIN rooms r ON b.room_id = r.id
       JOIN floors f ON r.floor_id = f.id
       JOIN buildings bld ON f.building_id = bld.id
+      LEFT JOIN blacklist bl ON bl.user_id = a.user_id AND bl.is_active = TRUE
       WHERE a.id = ?`,
       [id]
     );

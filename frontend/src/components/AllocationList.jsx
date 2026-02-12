@@ -38,6 +38,11 @@ const statusPillStyle = (status) => {
   };
 };
 
+const blacklistStatusPillStyle = {
+  color: "#b91c1c",
+  backgroundColor: "#fee2e2"
+};
+
 function AllocationList({ allocations = [], onRefresh }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -66,7 +71,9 @@ function AllocationList({ allocations = [], onRefresh }) {
     } else if (filterType === "active") {
       results = results.filter((alloc) => !isExpired(alloc.end_date));
     } else if (filterType === "checkedOut") {
-      results = results.filter((alloc) => isCheckedOutStatus(alloc.status));
+      results = results.filter((alloc) =>
+        isCheckedOutStatus(alloc.statusDisplay || alloc.status)
+      );
     }
 
     if (searchTerm.trim()) {
@@ -82,7 +89,8 @@ function AllocationList({ allocations = [], onRefresh }) {
           floorLabel.toLowerCase().includes(search) ||
           alloc.room_number?.toString().includes(search) ||
           alloc.bed_number?.toString().includes(search) ||
-          alloc.allocation_code?.toLowerCase().includes(search)
+          alloc.allocation_code?.toLowerCase().includes(search) ||
+          (alloc.isBlacklisted ? "blacklisted".includes(search) : false)
         );
       });
     }
@@ -312,6 +320,9 @@ function AllocationList({ allocations = [], onRefresh }) {
               <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "left" }}>
                 Remarks
               </th>
+              <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "right" }}>
+                Rent
+              </th>
               <th style={{ border: "1px solid #ddd", padding: "12px", textAlign: "center" }}>
                 Code
               </th>
@@ -326,7 +337,8 @@ function AllocationList({ allocations = [], onRefresh }) {
           <tbody>
             {filteredAllocations.map((alloc) => {
               const floorLabel = alloc.floorName ?? alloc.floor_number ?? "-";
-              const isCheckedOut = isCheckedOutStatus(alloc.status);
+              const effectiveStatus = alloc.statusDisplay || alloc.status;
+              const isCheckedOut = isCheckedOutStatus(effectiveStatus);
               return (
                 <tr key={alloc.id}>
                   <td style={{ border: "1px solid #ddd", padding: "10px" }}>{alloc.userId}</td>
@@ -403,6 +415,19 @@ function AllocationList({ allocations = [], onRefresh }) {
                     style={{
                       border: "1px solid #ddd",
                       padding: "10px",
+                      textAlign: "right",
+                      fontWeight: "600"
+                    }}
+                  >
+                    {Number(alloc.rent ?? 0).toLocaleString("en-IN", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 2
+                    })}
+                  </td>
+                  <td
+                    style={{
+                      border: "1px solid #ddd",
+                      padding: "10px",
                       textAlign: "center",
                       fontWeight: "700"
                     }}
@@ -411,15 +436,27 @@ function AllocationList({ allocations = [], onRefresh }) {
                   </td>
                   <td style={{ border: "1px solid #ddd", padding: "10px", textAlign: "center" }}>
                     <span
+                      title={alloc.isBlacklisted ? alloc.blacklistReason || "User is blacklisted" : ""}
                       style={{
-                        ...statusPillStyle(alloc.status),
+                        ...(alloc.isBlacklisted
+                          ? blacklistStatusPillStyle
+                          : statusPillStyle(effectiveStatus)),
                         fontWeight: "bold",
                         padding: "4px 8px",
                         borderRadius: "4px",
                         fontSize: "12px"
                       }}
                     >
-                      {isCheckedOut ? "CHECKED_OUT" : alloc.status}
+                      {alloc.isBlacklisted
+                        ? (
+                          <span style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                            <MdBlock size={12} />
+                            BLACKLISTED
+                          </span>
+                        )
+                        : isCheckedOut
+                          ? "CHECKED_OUT"
+                          : effectiveStatus}
                     </span>
                   </td>
                   <td style={{ border: "1px solid #ddd", padding: "10px", textAlign: "center" }}>

@@ -11,6 +11,12 @@ function BookingPage({ onProceed, onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const toNumberOrNull = (value) => {
+    if (value === undefined || value === null || value === "") return null;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
   useEffect(() => {
     const loadBuildings = async () => {
       try {
@@ -38,7 +44,13 @@ function BookingPage({ onProceed, onNavigate }) {
 
     try {
       const response = await api.get("/floors", { params: { buildingId } });
-      setFloors(response.data);
+      const normalized = (response.data || []).map((f) => ({
+        ...f,
+        total_rooms: toNumberOrNull(f.total_rooms ?? f.totalRooms),
+        vacant_rooms: toNumberOrNull(f.vacant_rooms ?? f.vacantRooms),
+        occupied_rooms: toNumberOrNull(f.occupied_rooms ?? f.occupiedRooms)
+      }));
+      setFloors(normalized);
     } catch (err) {
       console.error("Floors error:", err);
       setFloors([]);
@@ -54,7 +66,13 @@ function BookingPage({ onProceed, onNavigate }) {
 
     try {
       const response = await api.get("/rooms", { params: { floorId } });
-      setRooms(response.data);
+      const normalized = (response.data || []).map((r) => ({
+        ...r,
+        total_beds: toNumberOrNull(r.total_beds ?? r.totalBeds),
+        vacant_beds: toNumberOrNull(r.vacant_beds ?? r.vacantBeds),
+        occupied_beds: toNumberOrNull(r.occupied_beds ?? r.occupiedBeds)
+      }));
+      setRooms(normalized);
     } catch (err) {
       console.error("Rooms error:", err);
       setRooms([]);

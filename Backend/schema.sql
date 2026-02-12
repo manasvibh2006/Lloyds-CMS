@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS allocations (
   contractor_name VARCHAR(255),
   start_date DATE,
   end_date DATE,
+  rent DECIMAL(10,2) NOT NULL DEFAULT 0,
   remarks TEXT,
   allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   released_at TIMESTAMP NULL,

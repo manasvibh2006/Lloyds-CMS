@@ -2,14 +2,26 @@ const express = require("express");
 const db = require("../db");
 const router = express.Router();
 
-async function getAllocationCountForBuilding(buildingId) {
+async function tableExists(tableName) {
+  const [rows] = await db.query(
+    `SELECT COUNT(*) AS total
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = ?`,
+    [tableName]
+  );
+  return Number(rows[0]?.total || 0) > 0;
+}
+
+async function getActiveAllocationCountForBuilding(buildingId) {
   const [rows] = await db.query(
     `SELECT COUNT(*) AS total
      FROM allocations a
      JOIN beds bed ON a.bed_id = bed.id
      JOIN rooms r ON bed.room_id = r.id
      JOIN floors f ON r.floor_id = f.id
-     WHERE f.building_id = ?`,
+     WHERE f.building_id = ?
+       AND UPPER(COALESCE(a.status, '')) = 'BOOKED'`,
     [buildingId]
   );
   return Number(rows[0]?.total || 0);
@@ -120,11 +132,36 @@ router.delete("/buildings/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const allocationCount = await getAllocationCountForBuilding(id);
-    if (allocationCount > 0) {
+    const activeAllocationCount = await getActiveAllocationCountForBuilding(id);
+    if (activeAllocationCount > 0) {
       return res.status(409).json({
-        error: `Cannot delete building. ${allocationCount} allocation record(s) are linked to this building. Checkout/remove allocations first.`
+        error: `Cannot delete building. ${activeAllocationCount} active allocation(s) are still linked to this building. Check out all employees first.`
       });
+    }
+
+    // Remove non-active allocation history linked to this building before deleting beds.
+    await db.query(
+      `DELETE a
+       FROM allocations a
+       JOIN beds bed ON a.bed_id = bed.id
+       JOIN rooms r ON bed.room_id = r.id
+       JOIN floors f ON r.floor_id = f.id
+       WHERE f.building_id = ?`,
+      [id]
+    );
+
+    // Remove bookings linked to this building before deleting beds.
+    // Some deployments do not have the bookings table.
+    if (await tableExists("bookings")) {
+      await db.query(
+        `DELETE bk
+         FROM bookings bk
+         JOIN beds bed ON bk.bed_id = bed.id
+         JOIN rooms r ON bed.room_id = r.id
+         JOIN floors f ON r.floor_id = f.id
+         WHERE f.building_id = ?`,
+        [id]
+      );
     }
     
     // Get all floors in this building

@@ -89,7 +89,10 @@ function BookingForm({
                   onFloorChange(f.id);
                 }}
               >
-                {f.name}
+                <span className="selection-card-title">{f.name}</span>
+                <span className="selection-card-meta">
+                  (Vacant rooms: {f.vacant_rooms ?? "--"}/{f.total_rooms ?? "--"})
+                </span>
               </button>
             ))
           )}
@@ -115,7 +118,10 @@ function BookingForm({
                   onRoomChange(r.id);
                 }}
               >
-                Room {parseInt(r.room_number)}
+                <span className="selection-card-title">Room {parseInt(r.room_number)}</span>
+                <span className="selection-card-meta">
+                  (Vacant beds: {r.vacant_beds ?? "--"}/{r.total_beds ?? "--"})
+                </span>
               </button>
             ))
           )}
