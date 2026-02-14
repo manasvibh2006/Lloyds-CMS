@@ -1,4 +1,4 @@
-import { MdDashboard, MdEvent, MdListAlt, MdAssessment, MdHomeWork } from "react-icons/md";
+import { MdDashboard, MdEvent, MdListAlt, MdAssessment, MdHomeWork, MdEngineering } from "react-icons/md";
 
 const sidebarConfig = [
   {
@@ -25,6 +25,11 @@ const sidebarConfig = [
     icon: MdHomeWork,
     label: "Camps",
     path: "camps",
+  },
+  {
+    icon: MdEngineering,
+    label: "Contractors",
+    path: "contractors",
   },
 ];
 

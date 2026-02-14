@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import FormRow from "../components/FormRow";
 import api from "../services/api";
 import "../styles/form.css";
 import "../styles/userInput.css";
+
+const getTodayDateString = () => new Date().toISOString().split("T")[0];
+const toIndianDate = (isoDate) => {
+  if (!isoDate) return "";
+  const [year, month, day] = isoDate.split("-");
+  return `${day}/${month}/${year}`;
+};
 
 function UserInputPage({ bookingData, onSuccess }) {
   const [userId, setUserId] = useState("");
   const [userName, setUserName] = useState("");
   const [company, setCompany] = useState("");
   const [contractorName, setContractorName] = useState("");
-  const [startDate, setStartDate] = useState("");
+  const [startDate] = useState(getTodayDateString());
   const [endDate, setEndDate] = useState("");
   const [rent, setRent] = useState("");
   const [remarks, setRemarks] = useState("");
@@ -20,6 +27,55 @@ function UserInputPage({ bookingData, onSuccess }) {
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
   const [blacklistReason, setBlacklistReason] = useState("");
   const [blacklisting, setBlacklisting] = useState(false);
+  const [bloodGroup, setBloodGroup] = useState("");
+  const [age, setAge] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [emergencyPhone, setEmergencyPhone] = useState("");
+  const [aadharNumber, setAadharNumber] = useState("");
+  const [contractorOptions, setContractorOptions] = useState([]);
+  const [designationOptions, setDesignationOptions] = useState([]);
+  const [showDesignationDropdown, setShowDesignationDropdown] = useState(false);
+
+  useEffect(() => {
+    const loadLookupData = async () => {
+      try {
+        const [contractorsRes, allocationsRes] = await Promise.all([
+          api.get("/contractors"),
+          api.get("/allocations")
+        ]);
+        const contractorRows = contractorsRes.data || [];
+        const allocationRows = allocationsRes.data || [];
+
+        const uniqueNames = Array.from(
+          new Set(
+            contractorRows
+              .map((item) => (item.name || "").trim())
+              .filter((name) => name)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+
+        const uniqueDesignations = Array.from(
+          new Set(
+            allocationRows
+              .map((item) => (item.designation || "").trim())
+              .filter((name) => name)
+          )
+        ).sort((a, b) => a.localeCompare(b));
+
+        setContractorOptions(uniqueNames);
+        setDesignationOptions(uniqueDesignations);
+      } catch (err) {
+        console.error("Failed to load booking lookup data:", err);
+      }
+    };
+
+    loadLookupData();
+  }, []);
+
+  const filteredDesignations = designationOptions.filter((name) =>
+    name.toLowerCase().includes(designation.toLowerCase().trim())
+  );
+
 
   const checkBlacklist = async (id) => {
     if (!id || id.length < 3) {
@@ -55,6 +111,24 @@ function UserInputPage({ bookingData, onSuccess }) {
   const handleUserIdChange = (value) => {
     setUserId(value);
     checkBlacklist(value);
+  };
+
+  const preventManualDateEntry = (e) => {
+    const allowedKeys = [
+      "Tab",
+      "Shift",
+      "Control",
+      "Alt",
+      "Meta",
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown"
+    ];
+
+    if (!allowedKeys.includes(e.key)) {
+      e.preventDefault();
+    }
   };
 
   const handleBlacklist = async () => {
@@ -93,8 +167,37 @@ function UserInputPage({ bookingData, onSuccess }) {
       alert("Booking data missing. Please select a bed again.");
       return;
     }
-    if (!userId || !userName || !company || !startDate || !endDate) {
+    if (
+      !userId ||
+      !userName ||
+      !company ||
+      !contractorName ||
+      !startDate ||
+      !endDate ||
+      !bloodGroup ||
+      !age ||
+      !designation ||
+      !emergencyPhone ||
+      !aadharNumber
+    ) {
       alert("Please fill all required fields");
+      return;
+    }
+    if (!/^\d{10}$/.test(emergencyPhone)) {
+      alert("Emergency phone must be 10 digits");
+      return;
+    }
+    if (!contractorOptions.includes(contractorName)) {
+      alert("Please select a valid contractor from the Contractors section list.");
+      return;
+    }
+    if (!/^\d{12}$/.test(aadharNumber)) {
+      alert("Aadhar number must be 12 digits");
+      return;
+    }
+    const parsedAge = Number(age);
+    if (!Number.isInteger(parsedAge) || parsedAge < 1 || parsedAge > 62) {
+      alert("Age must be between 1 and 62");
       return;
     }
     if (isBlacklisted) {
@@ -117,7 +220,12 @@ function UserInputPage({ bookingData, onSuccess }) {
         startDate,
         endDate,
         rent: rent ? Number(rent) : 0,
-        remarks
+        remarks,
+        bloodGroup,
+        age: parsedAge,
+        designation,
+        emergencyPhone,
+        aadharNumber
       });
       alert("Allocation successful");
       onSuccess();
@@ -143,44 +251,186 @@ function UserInputPage({ bookingData, onSuccess }) {
           </div>
         )}
 
-        <FormRow label="User ID" required>
-          <input type="text" value={userId} onChange={(e) => handleUserIdChange(e.target.value)} style={isBlacklisted ? { borderColor: "#dc2626" } : {}} />
-        </FormRow>
+        <div className="user-form-grid">
+          <FormRow label="Worker ID" required>
+            <input type="text" value={userId} onChange={(e) => handleUserIdChange(e.target.value)} style={isBlacklisted ? { borderColor: "#dc2626" } : {}} />
+          </FormRow>
 
-        <FormRow label="User Name" required>
-          <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} />
-        </FormRow>
+          <FormRow label="User Name" required>
+            <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} />
+          </FormRow>
 
-        <FormRow label="Company Name" required>
-          <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} />
-        </FormRow>
+          <FormRow label="Company Name" required>
+            <select value={company} onChange={(e) => setCompany(e.target.value)}>
+              <option value="">Select company</option>
+              <option value="lloyds-operations">lloyds-operations</option>
+              <option value="lloyds-project">lloyds-project</option>
+            </select>
+          </FormRow>
 
-        <FormRow label="Contractor Name">
-          <input type="text" value={contractorName} onChange={(e) => setContractorName(e.target.value)} />
-        </FormRow>
+          <FormRow label="Contractor Name" required>
+            <select
+              value={contractorName}
+              onChange={(e) => setContractorName(e.target.value)}
+              disabled={contractorOptions.length === 0}
+            >
+              <option value="">
+                {contractorOptions.length === 0
+                  ? "No contractors found. Add from Contractors section."
+                  : "Select contractor"}
+              </option>
+              {contractorOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </FormRow>
 
-        <FormRow label="Start date" required>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        </FormRow>
+          <FormRow label="Start date" required>
+            <input className="date-compact" type="text" value={toIndianDate(startDate)} readOnly />
+          </FormRow>
 
-        <FormRow label="End date" required>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </FormRow>
+          <FormRow label="End date" required>
+            <input
+              className="date-compact"
+              type="date"
+              value={endDate}
+              min={startDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              onKeyDown={preventManualDateEntry}
+              onPaste={(e) => e.preventDefault()}
+            />
+          </FormRow>
 
-        <FormRow label="Rent (Optional)">
-          <input
-            type="number"
-            min="0"
-            step="0.01"
-            value={rent}
-            onChange={(e) => setRent(e.target.value)}
-            placeholder="Enter rent amount"
-          />
-        </FormRow>
+          <FormRow label="Blood Group" required>
+            <select value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
+              <option value="">Select blood group</option>
+              <option value="A+">A+</option>
+              <option value="A-">A-</option>
+              <option value="B+">B+</option>
+              <option value="B-">B-</option>
+              <option value="AB+">AB+</option>
+              <option value="AB-">AB-</option>
+              <option value="O+">O+</option>
+              <option value="O-">O-</option>
+            </select>
+          </FormRow>
 
-        <FormRow label="Remarks">
-          <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-        </FormRow>
+          <FormRow label="Age" required>
+            <input
+              type="number"
+              min="1"
+              max="62"
+              value={age}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (value === "") {
+                  setAge("");
+                  return;
+                }
+                const numeric = Number(value);
+                if (!Number.isNaN(numeric)) {
+                  setAge(String(Math.min(62, Math.max(1, numeric))));
+                }
+              }}
+            />
+          </FormRow>
+
+          <FormRow label="Designation" required>
+            <div style={{ position: "relative", width: "100%" }}>
+              <input
+                type="text"
+                value={designation}
+                onChange={(e) => {
+                  setDesignation(e.target.value);
+                  setShowDesignationDropdown(true);
+                }}
+                onFocus={() => setShowDesignationDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDesignationDropdown(false), 120)}
+                placeholder="Type or select designation"
+                autoComplete="off"
+              />
+              {showDesignationDropdown && filteredDesignations.length > 0 && (
+                <div
+                  onMouseDown={(e) => e.preventDefault()}
+                  style={{
+                    position: "absolute",
+                    top: "100%",
+                    left: 0,
+                    right: 0,
+                    maxHeight: "180px",
+                    overflowY: "auto",
+                    background: "#fff",
+                    border: "1px solid #d1d5db",
+                    borderRadius: "8px",
+                    marginTop: "6px",
+                    zIndex: 20,
+                    boxShadow: "0 10px 24px rgba(0,0,0,0.08)"
+                  }}
+                >
+                  {filteredDesignations.map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => {
+                        setDesignation(name);
+                        setShowDesignationDropdown(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        textAlign: "left",
+                        padding: "10px 12px",
+                        border: "none",
+                        borderBottom: "1px solid #f3f4f6",
+                        background: "white",
+                        cursor: "pointer",
+                        fontSize: "14px"
+                      }}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </FormRow>
+
+          <FormRow label="Emergency Phone Number" required>
+            <input
+              type="tel"
+              maxLength={10}
+              value={emergencyPhone}
+              onChange={(e) => setEmergencyPhone(e.target.value.replace(/\D/g, ""))}
+              placeholder="10-digit number"
+            />
+          </FormRow>
+
+          <FormRow label="Aadhar Number" required>
+            <input
+              type="text"
+              maxLength={12}
+              value={aadharNumber}
+              onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, ""))}
+              placeholder="12-digit Aadhar"
+            />
+          </FormRow>
+
+          <FormRow label="Rent (Optional)">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={rent}
+              onChange={(e) => setRent(e.target.value)}
+              placeholder="Enter rent amount"
+            />
+          </FormRow>
+
+          <FormRow label="Remarks">
+            <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} />
+          </FormRow>
+        </div>
 
         <div className="user-button-group">
           <button className="btn-submit" onClick={handleSubmit} disabled={loading || isBlacklisted} style={isBlacklisted ? { backgroundColor: "#ccc", cursor: "not-allowed" } : {}}>

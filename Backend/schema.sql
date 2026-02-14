@@ -80,6 +80,11 @@ CREATE TABLE IF NOT EXISTS allocations (
   allocated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   released_at TIMESTAMP NULL,
   status VARCHAR(50) DEFAULT 'BOOKED',
+  blood_group VARCHAR(5),
+  age INT,
+  designation VARCHAR(100),
+  emergency_phone VARCHAR(15),
+  aadhar_number VARCHAR(12),
   FOREIGN KEY (bed_id) REFERENCES beds(id)
 );
 
@@ -94,4 +99,16 @@ CREATE TABLE IF NOT EXISTS blacklist (
   blacklisted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   is_active BOOLEAN DEFAULT TRUE,
   UNIQUE KEY unique_active_user (user_id, is_active)
+);
+
+-- Create contractors table
+CREATE TABLE IF NOT EXISTS contractors (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  contractor_code VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(255) NOT NULL,
+  company VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(20) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );

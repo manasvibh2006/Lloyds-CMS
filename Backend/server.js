@@ -20,6 +20,7 @@ app.use("/api/dashboard", require("./routes/dashboard"));
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/camps", require("./routes/camps"));
 app.use("/api/blacklist", require("./routes/blacklist"));
+app.use("/api/contractors", require("./routes/contractors"));
 
 // root test
 app.get("/", (req, res) => {

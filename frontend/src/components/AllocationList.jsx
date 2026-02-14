@@ -56,6 +56,12 @@ function AllocationList({ allocations = [], onRefresh }) {
     contractorName: "",
     startDate: "",
     endDate: "",
+    bloodGroup: "",
+    age: "",
+    designation: "",
+    emergencyPhone: "",
+    aadharNumber: "",
+    rent: "",
     remarks: ""
   });
 
@@ -108,6 +114,12 @@ function AllocationList({ allocations = [], onRefresh }) {
       contractorName: allocation.contractorName || "",
       startDate: toInputDate(allocation.start_date),
       endDate: toInputDate(allocation.end_date),
+      bloodGroup: allocation.bloodGroup || "",
+      age: allocation.age ?? "",
+      designation: allocation.designation || "",
+      emergencyPhone: allocation.emergencyPhone || "",
+      aadharNumber: allocation.aadharNumber || "",
+      rent: allocation.rent ?? "",
       remarks: allocation.remarks || ""
     });
     setBlacklistReason("");
@@ -536,6 +548,93 @@ function AllocationList({ allocations = [], onRefresh }) {
                   value={formData.endDate}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, endDate: e.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Blood Group
+                <select
+                  value={formData.bloodGroup}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bloodGroup: e.target.value }))
+                  }
+                >
+                  <option value="">Select blood group</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </label>
+
+              <label>
+                Age
+                <input
+                  type="number"
+                  min="1"
+                  max="62"
+                  value={formData.age}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, age: e.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Designation
+                <input
+                  type="text"
+                  value={formData.designation}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, designation: e.target.value }))
+                  }
+                />
+              </label>
+
+              <label>
+                Emergency Phone
+                <input
+                  type="text"
+                  maxLength={10}
+                  value={formData.emergencyPhone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      emergencyPhone: e.target.value.replace(/\D/g, "")
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                Aadhar Number
+                <input
+                  type="text"
+                  maxLength={12}
+                  value={formData.aadharNumber}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      aadharNumber: e.target.value.replace(/\D/g, "")
+                    }))
+                  }
+                />
+              </label>
+
+              <label>
+                Rent
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.rent}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, rent: e.target.value }))
                   }
                 />
               </label>

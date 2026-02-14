@@ -26,33 +26,80 @@ function DashboardPage({ onNavigate }) {
   const fetchAllContractors = async () => {
     try {
       setContractorsLoading(true);
-      const response = await api.get("/allocations");
-      
-      // Group allocations by contractor and company
-      const contractorMap = {};
-      let totalEmployees = 0;
-      
-      response.data.forEach(allocation => {
-        totalEmployees += 1;
-        const key = `${allocation.contractorName}-${allocation.company}`;
-        if (!contractorMap[key]) {
-          contractorMap[key] = {
-            contractor_name: allocation.contractorName,
-            company: allocation.company,
-            employeeCount: 0
-          };
+      const [contractorsResult, allocationsResult] = await Promise.allSettled([
+        api.get("/contractors"),
+        api.get("/allocations")
+      ]);
+
+      const contractorsRows =
+        contractorsResult.status === "fulfilled" ? (contractorsResult.value.data || []) : [];
+      const allocationRows =
+        allocationsResult.status === "fulfilled" ? (allocationsResult.value.data || []) : [];
+
+      // Start with master contractors (visible even with 0 workers)
+      const contractorMap = new Map();
+      for (const item of contractorsRows) {
+        const name = (item.name || "").trim();
+        if (!name) continue;
+        const company = (item.company || "N/A").trim() || "N/A";
+        const key = `${name.toLowerCase()}|${company.toLowerCase()}`;
+        contractorMap.set(key, {
+          id: item.id ?? key,
+          contractor_name: name,
+          company,
+          employeeCount: 0,
+          workerIds: new Set()
+        });
+      }
+
+      // Merge allocation contractors (legacy/new allocation-only names)
+      for (const row of allocationRows) {
+        const rawName = (row.contractorName || "").trim();
+        if (!rawName || rawName.toUpperCase() === "N/A") continue;
+        const rawCompany = (row.company || "").trim();
+        const company = rawCompany || "N/A";
+        const key = `${rawName.toLowerCase()}|${company.toLowerCase()}`;
+
+        if (!contractorMap.has(key)) {
+          contractorMap.set(key, {
+            id: key,
+            contractor_name: rawName,
+            company,
+            employeeCount: 0,
+            workerIds: new Set()
+          });
         }
-        contractorMap[key].employeeCount += 1;
-      });
-      
-      const contractorsList = Object.values(contractorMap);
+
+        // Count unique active workers, not allocation rows.
+        const status = (row.statusDisplay || row.status || "").toUpperCase();
+        if (status === "BOOKED" && row.userId) {
+          contractorMap.get(key).workerIds.add(String(row.userId));
+        }
+      }
+
+      const contractorsList = Array.from(contractorMap.values())
+        .map((item) => ({
+          id: item.id,
+          contractor_name: item.contractor_name,
+          company: item.company,
+          employeeCount: item.workerIds.size
+        }))
+        .sort((a, b) => b.employeeCount - a.employeeCount);
+
       setContractors(contractorsList);
-      
-      // Update dashboard data with total employees
+
+      // Keep total allocations card behavior.
       setDashboardData(prev => ({
         ...prev,
-        activeEmployees: totalEmployees
+        activeEmployees: allocationRows.length
       }));
+
+      if (contractorsResult.status === "rejected") {
+        console.error("Contractors API failed:", contractorsResult.reason);
+      }
+      if (allocationsResult.status === "rejected") {
+        console.error("Allocations API failed:", allocationsResult.reason);
+      }
     } catch (err) {
       console.error("Error fetching contractors:", err);
       setError("Failed to load contractors data");
@@ -161,8 +208,8 @@ function DashboardPage({ onNavigate }) {
               </tr>
             </thead>
             <tbody>
-              {contractors.map((contractor, index) => (
-                <tr key={index}>
+              {contractors.map((contractor) => (
+                <tr key={contractor.id ?? `${contractor.contractor_name}-${contractor.company}`}>
                   <td>{contractor.contractor_name}</td>
                   <td>{contractor.company}</td>
                   <td>{contractor.employeeCount}</td>
@@ -172,6 +219,7 @@ function DashboardPage({ onNavigate }) {
           </table>
         )}
       </div>
+
     </div>
   );
 }

@@ -101,6 +101,11 @@ router.get("/", async (req, res) => {
         a.start_date,
         a.end_date,
         a.rent,
+        a.blood_group AS bloodGroup,
+        a.age AS age,
+        a.designation AS designation,
+        a.emergency_phone AS emergencyPhone,
+        a.aadhar_number AS aadharNumber,
         a.remarks,
         a.status,
         CASE
@@ -153,7 +158,12 @@ router.post("/", async (req, res) => {
     startDate,
     endDate,
     remarks,
-    rent
+    rent,
+    bloodGroup,
+    age,
+    designation,
+    emergencyPhone,
+    aadharNumber
   } = req.body;
 
   if (!userId || !bedId) {
@@ -193,8 +203,8 @@ router.post("/", async (req, res) => {
     // Insert allocation (normalized — no user_name/company here)
     const [result] = await db.query(
       `INSERT INTO allocations
-       (user_id, bed_id, contractor_name, remarks, start_date, end_date, rent, status, allocation_code)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'BOOKED', ?)`,
+       (user_id, bed_id, contractor_name, remarks, start_date, end_date, rent, status, allocation_code, blood_group, age, designation, emergency_phone, aadhar_number)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'BOOKED', ?, ?, ?, ?, ?, ?)`,
       [
         userId,
         bedId,
@@ -203,7 +213,12 @@ router.post("/", async (req, res) => {
         startDate || null,
         endDate || null,
         rent != null && rent !== "" ? Number(rent) : 0,
-        allocationCode
+        allocationCode,
+        bloodGroup || null,
+        age ? Number(age) : null,
+        designation || null,
+        emergencyPhone || null,
+        aadharNumber || null
       ]
     );
 
@@ -240,7 +255,12 @@ router.put("/:id", async (req, res) => {
     endDate,
     rent,
     remarks,
-    checkout
+    checkout,
+    bloodGroup,
+    age,
+    designation,
+    emergencyPhone,
+    aadharNumber
   } = req.body;
 
   if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
@@ -288,6 +308,11 @@ router.put("/:id", async (req, res) => {
            start_date = ?,
            end_date = ?,
            rent = COALESCE(?, rent),
+           blood_group = COALESCE(?, blood_group),
+           age = COALESCE(?, age),
+           designation = COALESCE(?, designation),
+           emergency_phone = COALESCE(?, emergency_phone),
+           aadhar_number = COALESCE(?, aadhar_number),
            remarks = ?,
            status = ?,
            released_at = ?
@@ -297,6 +322,11 @@ router.put("/:id", async (req, res) => {
         startDate || null,
         endDate || null,
         rent === undefined ? null : (rent != null && rent !== "" ? Number(rent) : 0),
+        bloodGroup === undefined ? null : bloodGroup || null,
+        age === undefined ? null : (age ? Number(age) : null),
+        designation === undefined ? null : designation || null,
+        emergencyPhone === undefined ? null : emergencyPhone || null,
+        aadharNumber === undefined ? null : aadharNumber || null,
         remarks || null,
         nextStatus,
         shouldCheckout ? new Date() : null,
@@ -355,6 +385,11 @@ router.get("/:id", async (req, res) => {
         a.end_date,
         a.bed_id,
         a.allocation_code,
+        a.blood_group AS bloodGroup,
+        a.age AS age,
+        a.designation AS designation,
+        a.emergency_phone AS emergencyPhone,
+        a.aadhar_number AS aadharNumber,
         b.bed_number,
         r.room_number,
         f.floor_number,

@@ -8,6 +8,7 @@ import AllocationList from "./components/AllocationList";
 import ReportPage from "./pages/ReportPage";
 import CampPage from "./pages/CampPage";
 import SettingsPage from "./pages/SettingsPage";
+import ContractorsPage from "./pages/ContractorsPage";
 import api from "./services/api";
 
 
@@ -110,6 +111,10 @@ function App() {
 
       {activePage === "settings" && (
         <SettingsPage />
+      )}
+
+      {activePage === "contractors" && (
+        <ContractorsPage />
       )}
     </DashboardLayout>
   );
